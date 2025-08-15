@@ -229,7 +229,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
-    environment: staging
+    environment:
+      name: staging
     
     steps:
       - uses: actions/checkout@v3
@@ -266,7 +267,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment: production
+    environment:
+      name: production
     
     steps:
       - uses: actions/checkout@v3

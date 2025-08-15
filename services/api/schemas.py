@@ -53,7 +53,7 @@ class PaginationParams(BaseModel):
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=20, ge=1, le=100)
     sort_by: Optional[str] = None
-    sort_order: Optional[str] = Field(default="desc", regex="^(asc|desc)$")
+    sort_order: Optional[str] = Field(default="desc", pattern="^(asc|desc)$")
 
 # Auth Models
 class AuthRequest(BaseModel):
@@ -101,14 +101,14 @@ class MonitorUpdate(BaseModel):
 class ProfileData(BaseModel):
     profile_name: str
     email: EmailStr
-    phone: str = Field(..., regex=r'^\+?1?\d{10,14}$')
+    phone: str = Field(..., pattern=r'^\+?1?\d{10,14}$')
     first_name: str = Field(..., min_length=1, max_length=50)
     last_name: str = Field(..., min_length=1, max_length=50)
     address_line1: str
     address_line2: Optional[str] = None
     city: str
     state: str = Field(..., min_length=2, max_length=2)
-    zip_code: str = Field(..., regex=r'^\d{5}(-\d{4})?$')
+    zip_code: str = Field(..., pattern=r'^\d{5}(-\d{4})?$')
     country: str = Field(default="US", min_length=2, max_length=2)
     
 class PaymentData(BaseModel):
