@@ -1,240 +1,130 @@
-import { useState, useEffect, useRef } from 'react';
-import { HealthStatus } from './components/HealthStatus';
+import { useState, useEffect } from 'react';
+import { Dashboard } from './components/Dashboard';
+import { Toaster } from 'react-hot-toast';
+import './App.css';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
-
-// API Client
-class SneakerSniperAPI {
-  private token: string | null = null;
-
-  async authenticate(apiKey?: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api_key: apiKey || 'dev-mode' })
-    });
-    const data = await response.json();
-    this.token = data.token;
-  }
-
-  async parseCommand(prompt: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/api/commands/parse`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.token}`
-      },
-      body: JSON.stringify({ prompt })
-    });
-    return response.json();
-  }
-
-  async getMetrics(): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/api/metrics/dashboard`, {
-      headers: { 'Authorization': `Bearer ${this.token}` }
-    });
-    return response.json();
-  }
-
-  getToken() {
-    return this.token;
-  }
-}
-
-interface Message {
-  type: 'user' | 'bot';
-  content: string;
-  isHtml?: boolean;
-}
 
 function App() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [connected, setConnected] = useState(false);
-  const [metrics, setMetrics] = useState<any>(null);
-  
-  const api = useRef(new SneakerSniperAPI());
-  const ws = useRef<WebSocket | null>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [apiToken, setApiToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    initialize();
-    return () => {
-      ws.current?.close();
-    };
+    authenticate();
   }, []);
 
-  useEffect(() => {
-    // Scroll to bottom when messages change
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  const initialize = async () => {
+  const authenticate = async () => {
     try {
-      await api.current.authenticate();
-      setConnected(true);
-      addBotMessage('**SneakerSniper Bot Engine Online.** All systems operational. Ready for commands.');
-      updateMetrics();
-      connectWebSocket();
-    } catch (error) {
-      addBotMessage('<span style="color:var(--error-color)">Failed to connect to backend. Running in offline mode.</span>', true);
-    }
-  };
+      setLoading(true);
+      setError(null);
 
-  const connectWebSocket = () => {
-    const token = api.current.getToken();
-    if (!token) return;
+      // Check for saved token
+      const savedToken = localStorage.getItem('sniped_token');
+      if (savedToken) {
+        // Validate saved token
+        const response = await fetch(`${API_BASE_URL}/health`, {
+          headers: {
+            Authorization: `Bearer ${savedToken}`
+          }
+        });
 
-    ws.current = new WebSocket(`${WS_BASE_URL}/ws?token=${token}`);
-    
-    ws.current.onopen = () => {
-      console.log('WebSocket connected');
-    };
-
-    ws.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      // Handle WebSocket messages for real-time updates
-      console.log('WebSocket message:', data);
-    };
-
-    ws.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    ws.current.onclose = () => {
-      console.log('WebSocket disconnected');
-      // Implement reconnection logic if needed
-    };
-  };
-
-  const addBotMessage = (content: string, isHtml = false) => {
-    setMessages(prev => [...prev, { type: 'bot', content, isHtml }]);
-  };
-
-  const addUserMessage = (content: string) => {
-    setMessages(prev => [...prev, { type: 'user', content }]);
-  };
-
-  const updateMetrics = async () => {
-    try {
-      const metricsData = await api.current.getMetrics();
-      setMetrics(metricsData);
-    } catch (error) {
-      console.error('Failed to fetch metrics:', error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const prompt = inputValue.trim();
-    if (!prompt) return;
-    
-    setInputValue('');
-    setLoading(true);
-    addUserMessage(prompt);
-
-    try {
-      const result = await api.current.parseCommand(prompt);
-      
-      if (result.type === 'command') {
-        addBotMessage(`Executing command: ${result.command.action}`);
-        // Here you would implement command execution
-      } else if (result.type === 'chat') {
-        addBotMessage(result.response);
-      } else if (result.type === 'error') {
-        addBotMessage(`<span style="color:var(--error-color)">Error: ${result.message}</span>`, true);
+        if (response.ok) {
+          setApiToken(savedToken);
+          setUserId(localStorage.getItem('sniped_user_id') || 'dev-user');
+          setAuthenticated(true);
+          setLoading(false);
+          return;
+        }
       }
-    } catch (error) {
-      addBotMessage('<span style="color:var(--error-color)">Connection error. Check if backend is running.</span>', true);
+
+      // Create new session
+      const response = await fetch(`${API_BASE_URL}/api/auth/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          api_key: import.meta.env.VITE_API_KEY || 'dev-mode',
+          device_id: navigator.userAgent
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Authentication failed');
+      }
+
+      const data = await response.json();
+      
+      // Save token
+      localStorage.setItem('sniped_token', data.token);
+      localStorage.setItem('sniped_user_id', data.user_id);
+      
+      setApiToken(data.token);
+      setUserId(data.user_id);
+      setAuthenticated(true);
+    } catch (err) {
+      console.error('Authentication error:', err);
+      setError('Failed to connect to Sniped API. Please check if the backend is running.');
     } finally {
       setLoading(false);
-      updateMetrics();
     }
   };
+
+  if (loading) {
+    return (
+      <div className="app-loading">
+        <div className="loading-content">
+          <div className="logo-animation">
+            <h1>SNIPED</h1>
+            <div className="loading-bar">
+              <div className="loading-progress" />
+            </div>
+          </div>
+          <p>Initializing systems...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="app-error">
+        <div className="error-content">
+          <h1>Connection Error</h1>
+          <p>{error}</p>
+          <button onClick={authenticate}>Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated || !apiToken || !userId) {
+    return (
+      <div className="app-auth">
+        <div className="auth-content">
+          <h1>SNIPED</h1>
+          <p>Authentication required</p>
+          <button onClick={authenticate}>Connect</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>SneakerSniper Control Panel</h1>
-        <HealthStatus />
-      </header>
-
-      <div className="main-container">
-        <div className="chat-section">
-          <div className="chat-container" ref={chatContainerRef}>
-            <div className="chat-history">
-              {messages.map((message, index) => (
-                <div key={index} className={`message ${message.type}-message`}>
-                  {message.isHtml ? (
-                    <div dangerouslySetInnerHTML={{ __html: message.content }} />
-                  ) : (
-                    <div>{message.content}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="prompt-form">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Enter command (e.g., 'monitor Jordan 4' or 'run 50 checkouts')"
-              disabled={loading}
-              className="prompt-input"
-            />
-            <button type="submit" disabled={loading || !connected}>
-              {loading ? '...' : '▶'}
-            </button>
-          </form>
-        </div>
-
-        <div className="dashboard-section">
-          {metrics && (
-            <div className="metrics-container">
-              <h3>System Metrics</h3>
-              <div className="metric-grid">
-                <div className="metric-item">
-                  <span className="metric-label">Active Monitors</span>
-                  <span className="metric-value">{metrics.active_monitors}</span>
-                </div>
-                <div className="metric-item">
-                  <span className="metric-label">Running Tasks</span>
-                  <span className="metric-value">{metrics.running_tasks}</span>
-                </div>
-                <div className="metric-item">
-                  <span className="metric-label">Success Rate</span>
-                  <span className="metric-value">{metrics.success_rate}%</span>
-                </div>
-                <div className="metric-item">
-                  <span className="metric-label">Avg Latency</span>
-                  <span className="metric-value">{metrics.avg_latency_ms}ms</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="monitors-container">
-            <h3>Active Monitors</h3>
-            <div id="monitors-list">
-              {/* Monitor components will be rendered here */}
-            </div>
-          </div>
-
-          <div className="tasks-container">
-            <h3>Checkout Tasks</h3>
-            <div id="tasks-list">
-              {/* Task components will be rendered here */}
-            </div>
-          </div>
-        </div>
-      </div>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#1a1a1a',
+            color: '#fff',
+            border: '1px solid #333',
+          },
+        }}
+      />
+      <Dashboard apiToken={apiToken} userId={userId} />
     </div>
   );
 }
