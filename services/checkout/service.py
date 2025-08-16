@@ -17,12 +17,14 @@ import logging
 from tenacity import retry, stop_after_attempt, wait_exponential
 import random
 from abc import ABC, abstractmethod
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @dataclass
+
 class CheckoutTask:
     """Checkout task configuration"""
     task_id: str
@@ -32,6 +34,7 @@ class CheckoutTask:
     size: str
     retailer: str
     mode: str  # 'request' or 'browser'
+    is_dry_run: bool = False
     proxy_url: Optional[str] = None
     
 @dataclass
@@ -311,6 +314,8 @@ class CheckoutService:
                         size=task_info.get('size', ''),
                         retailer=task_info['retailer'],
                         mode=task_info['mode']
+                        is_dry_run=task_info.get('is_dry_run', False)
+
                     )
                     
                     # Process task asynchronously
@@ -350,7 +355,22 @@ class CheckoutService:
                 return
             
             # Execute checkout
-            result = await engine.checkout(task, profile)
+            if task.is_dry_run:
+                # Simulate a successful checkout for dry runs
+                await asyncio.sleep(random.uniform(1.5, 3.0)) # Simulate network latency
+                result = CheckoutResult(
+                    success=True,
+                    order_id=f"DRY-RUN-{str(uuid.uuid4())[:8]}"
+                )
+                await self._update_task_status(
+                    task.task_id, "SUCCESS", f"Dry run successful: {result.order_id}"
+                )
+            else:
+                result = await engine.checkout(task, profile)
+             
+             # Store result in database for historical records
+             await self._store_checkout_result(task, result)
+
             
             # Store result in database for historical records
             await self._store_checkout_result(task, result)
