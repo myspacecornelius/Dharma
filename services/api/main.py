@@ -27,9 +27,13 @@ from schemas import (
     PredictionRequest, PredictionResponse, WSMessage
 )
 from middleware import (
-    RequestLoggingMiddleware, RateLimitMiddleware, ErrorHandlingMiddleware,
-    SecurityMiddleware, CacheMiddleware, cache_response
+    RequestLoggingMiddleware, ErrorHandlingMiddleware,
+    SecurityMiddleware, cache_response
 )
+from new_middleware import (
+    EnhancedRateLimitMiddleware, EnhancedCacheMiddleware
+)
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -115,10 +119,21 @@ async def startup_event():
     await asyncio.sleep(0.1)
     
     # Add rate limiting middleware
-    app.add_middleware(RateLimitMiddleware, redis_client=app.state.redis)
+    app.add_middleware(
+        EnhancedRateLimitMiddleware, 
+        redis_client=app.state.redis,
+        lua_script_path=os.path.join(os.path.dirname(__file__), "rate_limiter.lua")
+    )
     
     # Add caching middleware
-    app.add_middleware(CacheMiddleware, redis_client=app.state.redis)
+    app.add_middleware(
+        EnhancedCacheMiddleware, 
+        redis_client=app.state.redis, 
+        secret_key=os.getenv("CACHE_KEY_SECRET", "super-secret-key")
+    )
+    
+    # Add prometheus instrumentator
+    Instrumentator().instrument(app).expose(app)
     
     logger.info("Dynamic middleware initialized")
 
