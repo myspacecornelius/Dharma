@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { Toaster } from 'react-hot-toast';
+import Leaderboard from './components/Leaderboard';
+import HeatSubmit from './components/HeatSubmit';
+import ActivityFeed from './components/ActivityFeed';
 import './App.css';
 
 // API Configuration
@@ -124,9 +127,12 @@ function App() {
           },
         }}
       />
-      <Dashboard apiToken={apiToken} userId={userId} />
+      <div className="flex flex-col lg:flex-row gap-4 p-4">
+        <Dashboard apiToken={apiToken} userId={userId} />
+        <Leaderboard />
+        <HeatSubmit />
+        <ActivityFeed />
+      </div>
     </div>
   );
 }
-
-export default App;

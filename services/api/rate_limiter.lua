@@ -1,46 +1,41 @@
+-- KEYS[1] = bucket key
+-- ARGV: capacity, refill_per_sec, now_ms, cost, ttl_seconds
+-- returns: {allowed(1/0), remaining_tokens, retry_after_ms}
 
---
--- Token Bucket Rate Limiter
---
--- ARGV[1]: key
--- ARGV[2]: max_tokens
--- ARGV[3]: tokens_per_second
--- ARGV[4]: requested_tokens
--- ARGV[5]: timestamp
---
--- Returns:
--- {
---   allowed, (0 or 1)
---   tokens_left
--- }
---
+local key = KEYS[1]
+local capacity = tonumber(ARGV[1])
+local rate = tonumber(ARGV[2])            -- tokens per second
+local now_ms = tonumber(ARGV[3])
+local cost = tonumber(ARGV[4])            -- usually 1
+local ttl = tonumber(ARGV[5])
 
-local key = ARGV[1]
-local max_tokens = tonumber(ARGV[2])
-local tokens_per_second = tonumber(ARGV[3])
-local requested_tokens = tonumber(ARGV[4])
-local now = tonumber(ARGV[5])
+local bucket = redis.call("HMGET", key, "tokens", "ts")
+local tokens = tonumber(bucket[1])
+local ts = tonumber(bucket[2])
 
-local bucket = redis.call('hgetall', key)
-local tokens = max_tokens
-local last_refreshed = now
-
-if #bucket > 0 then
-  tokens = tonumber(bucket[2])
-  last_refreshed = tonumber(bucket[4])
+if tokens == nil then
+  tokens = capacity
+  ts = now_ms
+else
+  local delta = math.max(0, now_ms - ts) / 1000.0
+  local refill = delta * rate
+  tokens = math.min(capacity, tokens + refill)
+  ts = now_ms
 end
-
-local elapsed = now - last_refreshed
-local new_tokens = elapsed * tokens_per_second
-tokens = math.min(max_tokens, tokens + new_tokens)
 
 local allowed = 0
-if tokens >= requested_tokens then
-  tokens = tokens - requested_tokens
+local retry_after_ms = 0
+
+if tokens >= cost then
+  tokens = tokens - cost
   allowed = 1
+else
+  allowed = 0
+  local needed = cost - tokens
+  retry_after_ms = math.ceil((needed / rate) * 1000.0)
 end
 
-redis.call('hset', key, 'tokens', tokens, 'last_refreshed', now)
-redis.call('expire', key, max_tokens / tokens_per_second)
+redis.call("HMSET", key, "tokens", tokens, "ts", ts)
+redis.call("EXPIRE", key, ttl)
 
-return {allowed, tokens}
+return {allowed, tokens, retry_after_ms}
