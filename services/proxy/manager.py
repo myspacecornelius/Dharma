@@ -10,12 +10,15 @@ import json
 import time
 import logging
 import random
+import hashlib
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
+from services.proxy.utils.settings import SETTINGS
+from services.proxy.utils.metrics import proxy_requests, proxy_inflight, proxy_health, proxy_latency, proxy_active_total, proxy_burned_total, proxy_cost_total
 try:
     import httpx
 except ImportError:
@@ -112,6 +115,23 @@ class Proxy:
         if data.get('response_times') and isinstance(data['response_times'], str):
             data['response_times'] = json.loads(data['response_times'])
         return cls(**data)
+
+
+def proxy_id(p: "Proxy") -> str:
+    basis = (p.username or p.url)
+    sticky = p.sticky_session_id or "none"
+    h = hashlib.sha256(basis.encode()).hexdigest()[:10]
+    return f"{p.provider}:{p.proxy_type}:{sticky}:{h}"
+
+def now_utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00","Z")
+
+def redacted_auth(p: "Proxy") -> str:
+    protocol, rest = p.url.split("://", 1)
+    user = (p.username or "").split(":")[0] or "***"
+    host = rest.split("@")[-1]
+    return f"{protocol}://{user}:***@{host}"
+
 
 class ProxyProvider(ABC):
     """Abstract base for proxy providers"""
@@ -213,7 +233,7 @@ class ProxyManager:
             logger.error("redis.asyncio is not installed.")
             return
         self.redis_client = await redis.from_url(
-            "redis://localhost:6379",
+            SETTINGS.redis_url,
             encoding="utf-8",
             decode_responses=True
         )
@@ -256,20 +276,20 @@ class ProxyManager:
         requirements = requirements or {}
         proxy_type = requirements.get('type', 'any')
         location = requirements.get('location', 'any')
-        min_health_score = requirements.get('min_health_score', 70)
+        min_health_score = requirements.get('min_health_score', SETTINGS.min_health_score)
 
         # Get all active proxies
-        proxy_urls = await self.redis_client.smembers("proxies:active")
+        proxy_ids = await self.redis_client.smembers("snpd:proxies:active")
 
-        if not proxy_urls:
+        if not proxy_ids:
             # No proxies available, get new ones
             await self._provision_proxies(10)
-            proxy_urls = await self.redis_client.smembers("proxies:active")
+            proxy_ids = await self.redis_client.smembers("snpd:proxies:active")
 
         # Score and sort proxies
         scored_proxies = []
-        for proxy_url in proxy_urls:
-            proxy_data = await self.redis_client.hgetall(f"proxy:{proxy_url}")
+        for pid in proxy_ids:
+            proxy_data = await self.redis_client.hgetall(f"snpd:proxy:{proxy_url}")
             if not proxy_data:
                 continue
 
@@ -285,50 +305,83 @@ class ProxyManager:
 
             scored_proxies.append((proxy.health_score, proxy))
 
+        
         if not scored_proxies:
             logger.warning("No proxies match requirements")
             return None
 
-        # Sort by health score (descending)
-        scored_proxies.sort(key=lambda x: x[0], reverse=True)
+        import random
+        # ε-greedy weighted pick; avoid hotspotting
+        if random.random() < SETTINGS.explore_rate and len(scored_proxies) > 1:
+            weights = [max(1e-3, s) for s,_ in scored_proxies]
+            pick = random.choices(scored_proxies, weights=weights, k=1)[0][1]
+        else:
+            scored_proxies.sort(key=lambda x: x[0], reverse=True)
+            pick = scored_proxies[0][1]
 
-        # Get best proxy
-        best_proxy = scored_proxies[0][1]
+        pid = proxy_id(pick)
+        inflight_key = f"snpd:proxy:{pid}:inflight"
+        inflight = await self.redis_client.incr(inflight_key)
+        if inflight > requirements.get('max_inflight', SETTINGS.max_inflight):
+            await self.redis_client.decr(inflight_key)
+            logger.debug("Proxy at capacity; trying next candidate")
+            scored_proxies = [sp for sp in scored_proxies if sp[1] is not pick]
+            if not scored_proxies:
+                return None
+            weights = [max(1e-3, s) for s,_ in scored_proxies]
+            pick = random.choices(scored_proxies, weights=weights, k=1)[0][1]
+            pid = proxy_id(pick)
+            inflight_key = f"snpd:proxy:{pid}:inflight"
+            await self.redis_client.incr(inflight_key)
 
-        # Update last used
-        best_proxy.last_used = datetime.now()
-        await self._save_proxy(best_proxy)
+        await self.redis_client.hset(f"snpd:proxy:{pid}", mapping={"last_used": now_utc_iso()})
+        proxy_inflight.labels(proxy_id=pid).set(inflight)
+        proxy_health.labels(proxy_id=pid, provider=pick.provider).set(pick.health_score)
+        return pick
 
-        return best_proxy
     
-    async def report_usage(self, proxy: Proxy, success: bool, response_time: float, 
+    async def report_usage(self, proxy: Proxy, success: bool, response_time: float,
                           bandwidth_mb: float = 0.0, error: Optional[str] = None):
-        """Report proxy usage statistics"""
-        proxy.requests += 1
-        
-        if success:
-            proxy.success += 1
-        else:
-            proxy.failures += 1
-            proxy.last_error = error
-            
-        if proxy.response_times is not None:
-            proxy.response_times.append(response_time)
-        else:
-            proxy.response_times = [response_time]
-        proxy.total_bandwidth_mb += bandwidth_mb
-        
-        # Update cost tracking
-        self.cost_tracker[proxy.provider] += self._calculate_cost(proxy, bandwidth_mb)
-        
-        # Save updated stats
-        await self._save_proxy(proxy)
-        
-        # Check if proxy should be burned
-        if proxy.failure_rate > 30 and proxy.requests > 10:
+        """Atomic stats + EWMA + metrics"""
+        if self.redis_client is None:
+            logger.error("Redis client is not initialized."); return
+        pid = proxy_id(proxy)
+        key = f"snpd:proxy:{pid}"
+        alpha = SETTINGS.ewma_alpha
+        pipe = self.redis_client.pipeline()
+        pipe.hincrby(key, "requests", 1)
+        pipe.hincrby(key, "success" if success else "failures", 1)
+        pipe.hincrbyfloat(key, "total_bandwidth_mb", bandwidth_mb)
+        pipe.hset(key, mapping={"last_error": error or "", "last_used": now_utc_iso()})
+        cur = None
+        try:
+            cur = await self.redis_client.hget(key, "response_time_ewma_ms")
+        except Exception:
+            cur = None
+        ewma = float(cur) if cur is not None else response_time
+        ewma = alpha * response_time + (1 - alpha) * ewma
+        pipe.hset(key, "response_time_ewma_ms", ewma)
+        pipe.decr(f"{key}:inflight")
+        await pipe.execute()
+
+        # burn guard
+        req = int(await self.redis_client.hget(key, "requests") or 0)
+        fail = int(await self.redis_client.hget(key, "failures") or 0)
+        failure_rate = (fail / req * 100) if req else 0
+        if failure_rate > 30 and req > 10:
             await self._burn_proxy(proxy)
-    
+
+        # metrics
+        host = "*"
+        proxy_latency.labels(provider=proxy.provider, type=proxy.proxy_type, host=host).observe(response_time)
+        if success:
+            proxy_requests.labels(provider=proxy.provider, type=proxy.proxy_type, host=host, status="ok").inc()
+        else:
+            proxy_requests.labels(provider=proxy.provider, type=proxy.proxy_type, host=host, status="err").inc()
+        proxy_cost_total.labels(provider=proxy.provider).inc(self._calculate_cost(proxy, bandwidth_mb))
+
     async def _provision_proxies(self, count: int):
+(self, count: int):
         if self.redis_client is None:
             logger.error("Redis client is not initialized.")
             return
@@ -344,7 +397,7 @@ class ProxyManager:
                 
                 for proxy in new_proxies:
                     await self._save_proxy(proxy)
-                    await self.redis_client.sadd("proxies:active", proxy.url)
+                    await self.redis_client.sadd("snpd:proxies:active", proxy.url)
                     
                 logger.info(f"Provisioned {len(new_proxies)} proxies from {provider_name}")
                 
@@ -357,7 +410,7 @@ class ProxyManager:
             logger.error("Redis client is not initialized.")
             return
         await self.redis_client.hset(
-            f"proxy:{proxy.url}",
+            f"snpd:proxy:{proxy_id(proxy)}",
             mapping=proxy.to_dict()
         )
     
@@ -366,14 +419,14 @@ class ProxyManager:
             logger.error("Redis client is not initialized.")
             return
         """Mark proxy as burned"""
-        logger.warning(f"Burning proxy {proxy.url} - {proxy.failure_rate:.1f}% failure rate")
+        logger.warning(f"Burning proxy {redacted_auth(proxy)} - {proxy.failure_rate:.1f}% failure rate")
         
         # Remove from active set
-        await self.redis_client.srem("proxies:active", proxy.url)
-        await self.redis_client.sadd("proxies:burned", proxy.url)
+        await self.redis_client.srem("snpd:proxies:active", proxy_id(proxy))
+        await self.redis_client.sadd("snpd:proxies:burned", proxy_id(proxy))
         
         # Set expiry on proxy data (keep for 24h for analysis)
-        await self.redis_client.expire(f"proxy:{proxy.url}", 86400)
+        await self.redis_client.expire(f"snpd:proxy:{proxy_id(proxy)}", 86400)
         
         # Alert
         await self.redis_client.publish(
@@ -397,12 +450,12 @@ class ProxyManager:
             try:
                 await asyncio.sleep(300)  # Every 5 minutes
                 
-                active_proxies = await self.redis_client.smembers("proxies:active")
+                active_proxies = await self.redis_client.smembers("snpd:proxies:active")
                 healthy_count = 0
                 unhealthy_count = 0
                 
                 for proxy_url in active_proxies:
-                    proxy_data = await self.redis_client.hgetall(f"proxy:{proxy_url}")
+                    proxy_data = await self.redis_client.hgetall(f"snpd:proxy:{proxy_url}")
                     if not proxy_data:
                         continue
                         
@@ -490,10 +543,10 @@ class ProxyManager:
             try:
                 await asyncio.sleep(600)  # Every 10 minutes
                 
-                active_proxies = await self.redis_client.smembers("proxies:active")
+                active_proxies = await self.redis_client.smembers("snpd:proxies:active")
                 
                 for proxy_url in active_proxies:
-                    proxy_data = await self.redis_client.hgetall(f"proxy:{proxy_url}")
+                    proxy_data = await self.redis_client.hgetall(f"snpd:proxy:{proxy_url}")
                     if not proxy_data:
                         continue
                         
@@ -535,10 +588,10 @@ class ProxyManager:
             logger.error("Redis client is not initialized.")
             return
         """Load existing proxies from Redis"""
-        active_count = await self.redis_client.scard("proxies:active")
-        burned_count = await self.redis_client.scard("proxies:burned")
+        active_count = await self.redis_client.scard("snpd:proxies:active")
+        burned_count = await self.redis_client.scard("snpd:proxies:burned")
         
-        logger.info(f"Loaded {active_count} active proxies, {burned_count} burned")
+        logger.info(f"Loaded {active_count} active proxies, {burned_count} burned"); proxy_active_total.set(active_count); proxy_burned_total.set(burned_count)
         
         # Ensure minimum proxy count
         if active_count < 10:
@@ -549,8 +602,8 @@ class ProxyManager:
             logger.error("Redis client is not initialized.")
             return {}
         """Get proxy statistics"""
-        active_proxies = await self.redis_client.smembers("proxies:active")
-        burned_proxies = await self.redis_client.smembers("proxies:burned")
+        active_proxies = await self.redis_client.smembers("snpd:proxies:active")
+        burned_proxies = await self.redis_client.smembers("snpd:proxies:burned")
         
         stats = {
             'active': len(active_proxies),
@@ -567,7 +620,7 @@ class ProxyManager:
         
         # Analyze health scores
         for proxy_url in active_proxies:
-            proxy_data = await self.redis_client.hgetall(f"proxy:{proxy_url}")
+            proxy_data = await self.redis_client.hgetall(f"snpd:proxy:{proxy_url}")
             if proxy_data:
                 proxy = Proxy.from_dict(proxy_data)
                 score = proxy.health_score
@@ -625,7 +678,7 @@ class ProxiedClient:
         }
 
         # Make request
-        start_time = time.time()
+        start_time = time.monotonic()
         success = False
         error = None
         response = None
@@ -646,7 +699,7 @@ class ProxiedClient:
 
         finally:
             # Report usage
-            response_time = (time.time() - start_time) * 1000
+            response_time = (time.monotonic() - start_time) * 1000
             bandwidth_mb = len(response.content) / (1024 * 1024) if (success and response and hasattr(response, 'content')) else 0
 
             await self.proxy_manager.report_usage(
