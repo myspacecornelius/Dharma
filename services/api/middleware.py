@@ -17,8 +17,25 @@ import hashlib
 import hmac
 from functools import wraps
 import asyncio
+import os
+import base64
+from prometheus_client import Counter, Gauge
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 logger = logging.getLogger(__name__)
+
+# --- Prometheus Metrics ---
+RATE_ALLOWED = Counter("snpd_rate_allowed_total", "Requests allowed", ["scope"])
+RATE_LIMITED = Counter("snpd_rate_limited_total", "Requests limited", ["scope"])
+RATE_DROPPED = Counter("snpd_rate_dropped_total", "Requests dropped (shed)", ["scope"])
+RATE_TOKENS  = Gauge("snpd_rate_tokens", "Tokens remaining", ["scope"])
+CONCURRENCY  = Gauge("snpd_concurrency_current", "Current in-process concurrency")
+QUEUE_DEPTH  = Gauge("snpd_queue_depth", "Waiting requests in admission queue")
+
+CACHE_HIT   = Counter("snpd_cache_hits_total", "Cache hits", ["route"])
+CACHE_MISS  = Counter("snpd_cache_miss_total", "Cache misses", ["route"])
+CACHE_STALE = Counter("snpd_cache_stale_total", "Stale served", ["route"])
+CACHE_FILL  = Gauge("snpd_cache_fill_inflight", "In-flight cache fills", ["route"])
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Log all requests with timing and response info"""
@@ -51,135 +68,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         response.headers["X-Response-Time"] = f"{duration:.3f}"
         
         return response
-
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Rate limiting using sliding window algorithm"""
-    
-    def __init__(self, app, redis_client: redis.Redis):
-        super().__init__(app)
-        self.redis = redis_client
-        self.limits = {
-            "/api/monitors": {"requests": 100, "window": 3600},  # 100/hour
-            "/api/checkout": {"requests": 500, "window": 3600},  # 500/hour
-            "/api/commands/parse": {"requests": 1000, "window": 3600},  # 1000/hour
-            "default": {"requests": 2000, "window": 3600}  # 2000/hour
-        }
-    
-    async def dispatch(self, request: Request, call_next):
-        # Skip rate limiting for health checks
-        if request.url.path == "/health":
-            return await call_next(request)
-        
-        # Get client identifier (API key or IP)
-        client_id = await self._get_client_id(request)
-        
-        # Check rate limit
-        path_pattern = self._get_path_pattern(request.url.path)
-        limit_config = self.limits.get(path_pattern, self.limits["default"])
-        
-        is_allowed = await self._check_rate_limit(
-            client_id, 
-            path_pattern,
-            limit_config["requests"],
-            limit_config["window"]
-        )
-        
-        if not is_allowed:
-            return JSONResponse(
-                status_code=429,
-                content={
-                    "error": {
-                        "code": "RATE_LIMIT_EXCEEDED",
-                        "message": "Too many requests. Please try again later."
-                    }
-                },
-                headers={
-                    "Retry-After": str(limit_config["window"]),
-                    "X-RateLimit-Limit": str(limit_config["requests"]),
-                    "X-RateLimit-Window": str(limit_config["window"])
-                }
-            )
-        
-        response = await call_next(request)
-        
-        # Add rate limit headers
-        remaining = await self._get_remaining_requests(
-            client_id, 
-            path_pattern,
-            limit_config["requests"],
-            limit_config["window"]
-        )
-        
-        response.headers["X-RateLimit-Limit"] = str(limit_config["requests"])
-        response.headers["X-RateLimit-Remaining"] = str(remaining)
-        response.headers["X-RateLimit-Reset"] = str(
-            int(time.time()) + limit_config["window"]
-        )
-        
-        return response
-    
-    async def _get_client_id(self, request: Request) -> str:
-        """Get client identifier from auth token or IP"""
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-            return f"token:{token}"
-        
-        # Fallback to IP
-        client_ip = request.client.host
-        return f"ip:{client_ip}"
-    
-    def _get_path_pattern(self, path: str) -> str:
-        """Match path to pattern for rate limiting"""
-        for pattern in self.limits.keys():
-            if pattern != "default" and path.startswith(pattern):
-                return pattern
-        return "default"
-    
-    async def _check_rate_limit(
-        self, 
-        client_id: str, 
-        endpoint: str,
-        limit: int, 
-        window: int
-    ) -> bool:
-        """Check if request is within rate limit using sliding window"""
-        now = time.time()
-        key = f"rate_limit:{client_id}:{endpoint}"
-        
-        # Remove old entries
-        await self.redis.zremrangebyscore(key, 0, now - window)
-        
-        # Count requests in window
-        count = await self.redis.zcard(key)
-        
-        if count >= limit:
-            return False
-        
-        # Add current request
-        await self.redis.zadd(key, {str(uuid.uuid4()): now})
-        await self.redis.expire(key, window)
-        
-        return True
-    
-    async def _get_remaining_requests(
-        self,
-        client_id: str,
-        endpoint: str,
-        limit: int,
-        window: int
-    ) -> int:
-        """Get remaining requests in current window"""
-        now = time.time()
-        key = f"rate_limit:{client_id}:{endpoint}"
-        
-        # Remove old entries
-        await self.redis.zremrangebyscore(key, 0, now - window)
-        
-        # Count requests
-        count = await self.redis.zcard(key)
-        
-        return max(0, limit - count)
 
 class ErrorHandlingMiddleware(BaseHTTPMiddleware):
     """Global error handling with proper formatting"""
@@ -230,103 +118,6 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["Content-Security-Policy"] = "default-src 'self'"
         
         return response
-
-class CacheMiddleware(BaseHTTPMiddleware):
-    """Redis-based response caching for GET requests"""
-    
-    def __init__(self, app, redis_client: redis.Redis):
-        super().__init__(app)
-        self.redis = redis_client
-        self.cache_config = {
-            "/api/metrics": 60,  # 1 minute
-            "/api/products": 300,  # 5 minutes
-            "/api/prices": 180,  # 3 minutes
-        }
-    
-    async def dispatch(self, request: Request, call_next):
-        # Only cache GET requests
-        if request.method != "GET":
-            return await call_next(request)
-        
-        # Check if path should be cached
-        cache_ttl = self._get_cache_ttl(request.url.path)
-        if not cache_ttl:
-            return await call_next(request)
-        
-        # Generate cache key
-        cache_key = self._generate_cache_key(request)
-        
-        # Try to get from cache
-        cached_response = await self.redis.get(cache_key)
-        if cached_response:
-            data = json.loads(cached_response)
-            return JSONResponse(
-                content=data["content"],
-                status_code=data["status_code"],
-                headers={
-                    **data["headers"],
-                    "X-Cache": "HIT",
-                    "X-Cache-TTL": str(cache_ttl)
-                }
-            )
-        
-        # Get fresh response
-        response = await call_next(request)
-        
-        # Cache successful responses
-        if response.status_code == 200:
-            # Read response body
-            body = b""
-            async for chunk in response.body_iterator:
-                body += chunk
-            
-            # Cache the response
-            cache_data = {
-                "content": json.loads(body),
-                "status_code": response.status_code,
-                "headers": dict(response.headers)
-            }
-            
-            await self.redis.setex(
-                cache_key,
-                cache_ttl,
-                json.dumps(cache_data)
-            )
-            
-            # Return new response with cache headers
-            return JSONResponse(
-                content=cache_data["content"],
-                status_code=cache_data["status_code"],
-                headers={
-                    **cache_data["headers"],
-                    "X-Cache": "MISS",
-                    "X-Cache-TTL": str(cache_ttl)
-                }
-            )
-        
-        return response
-    
-    def _get_cache_ttl(self, path: str) -> Optional[int]:
-        """Get cache TTL for path"""
-        for pattern, ttl in self.cache_config.items():
-            if path.startswith(pattern):
-                return ttl
-        return None
-    
-    def _generate_cache_key(self, request: Request) -> str:
-        """Generate cache key from request"""
-        # Include query params in cache key
-        query_string = str(request.url.query)
-        path = request.url.path
-        
-        # Include auth info if present
-        auth_header = request.headers.get("Authorization", "")
-        
-        # Create hash of key components
-        key_data = f"{path}:{query_string}:{auth_header}"
-        key_hash = hashlib.md5(key_data.encode()).hexdigest()
-        
-        return f"cache:{key_hash}"
 
 class WebhookSignatureMiddleware(BaseHTTPMiddleware):
     """Validate webhook signatures for security"""
@@ -423,3 +214,222 @@ class RequestIDContext:
         return self._request_id
 
 request_id_context = RequestIDContext()
+
+class EnhancedRateLimitMiddleware:
+    def __init__(
+        self,
+        app: ASGIApp,
+        redis: redis.Redis,
+        *,
+        capacity_global: int = 1000,
+        rate_global: int = 1000,
+        capacity_user: int = 200,
+        rate_user: int = 200,
+        capacity_ip: int = 150,
+        rate_ip: int = 150,
+        capacity_route: int = 300,
+        rate_route: int = 300,
+        cost: int = 1,
+        ttl_seconds: int = 60,
+        max_concurrency: int = 200,
+        shed_threshold: int = 240,
+    ):
+        self.app = app
+        self.redis = redis
+        self.lua_sha = None
+        self.lua_path = os.path.join(os.path.dirname(__file__), "rate_limiter.lua")
+        self.capacity = {
+            "global": (capacity_global, rate_global),
+            "route":  (capacity_route,  rate_route),
+            "user":   (capacity_user,   rate_user),
+            "ip":     (capacity_ip,     rate_ip),
+        }
+        self.cost = cost
+        self.ttl = ttl_seconds
+        self.sema = asyncio.Semaphore(max_concurrency)
+        self.shed_threshold = shed_threshold
+
+    async def _ensure_lua(self):
+        if self.lua_sha is None:
+            with open(self.lua_path, "r", encoding="utf-8") as f:
+                script = f.read()
+            self.lua_sha = await self.redis.script_load(script)
+
+    def _keys(self, scope, route: str, user: Optional[str], ip: str):
+        base = "rl"
+        return {
+            "global": f"{base}:g",
+            "route":  f"{base}:r:{route}",
+            "user":   f"{base}:u:{user or 'anon'}",
+            "ip":     f"{base}:i:{ip}",
+        }
+
+    async def _check_bucket(self, key: str, cap: int, rate: int) -> tuple[int, float, int]:
+        await self._ensure_lua()
+        now_ms = int(time.time() * 1000)
+        res = await self.redis.evalsha(
+            self.lua_sha, 1, key, cap, rate, now_ms, self.cost, self.ttl
+        )
+        allowed, tokens, retry_after_ms = int(res[0]), float(res[1]), int(res[2])
+        return allowed, tokens, retry_after_ms
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        # Admission control (fast path: shed if queue too deep)
+        queued = max(0, self.sema._value * -1)
+        QUEUE_DEPTH.set(queued)
+        if CONCURRENCY._value is not None and CONCURRENCY._value >= self.shed_threshold:
+            RATE_DROPPED.labels(scope="admission").inc()
+            return await self._reject(send, 429, "admission_shed", retry_after=0.2)
+
+        route = scope.get("path", "/")
+        ip = scope.get("client")[0] if scope.get("client") else "0.0.0.0"
+        user = None
+        # Optional: pull user from auth header or request state later.
+
+        keys = self._keys(scope, route, user, ip)
+
+        # Hierarchical checks: global → route → user → IP (fail fast)
+        for level in ("global", "route", "user", "ip"):
+            cap, rate = self.capacity[level]
+            allowed, tokens, retry_ms = await self._check_bucket(keys[level], cap, rate)
+            RATE_TOKENS.labels(scope=level).set(tokens)
+            if not allowed:
+                RATE_LIMITED.labels(scope=level).inc()
+                return await self._reject(send, 429, f"rate_limited_{level}", retry_after=retry_ms/1000.0)
+
+        # Passed limiter: run request inside concurrency semaphore
+        async with self.sema:
+            CONCURRENCY.inc()
+            try:
+                RATE_ALLOWED.labels(scope="ok").inc()
+                await self.app(scope, receive, send)
+            finally:
+                CONCURRENCY.dec()
+
+    async def _reject(self, send: Send, status: int, reason: str, *, retry_after: float = None):
+        headers = [(b"content-type", b"application/json")]
+        if retry_after:
+            headers.append((b"retry-after", str(retry_after).encode()))
+        body = ('{"success":false,"error":"' + reason + '"}').encode()
+        await send({"type": "http.response.start", "status": status, "headers": headers})
+        await send({"type": "http.response.body", "body": body})
+
+class EnhancedCacheMiddleware:
+    def __init__(self, app: ASGIApp, redis: redis.Redis, *, secret: str, default_ttl: int = 60, swr_ttl: int = 300):
+        self.app = app
+        self.redis = redis
+        self.secret = secret.encode()
+        self.default_ttl = default_ttl
+        self.swr_ttl = swr_ttl
+
+    def _key(self, route: str, user: Optional[str], query: str, body: bytes) -> str:
+        h = hmac.new(self.secret, digestmod=hashlib.sha256)
+        h.update(route.encode())
+        h.update(b"|u=" + (user or "anon").encode())
+        h.update(b"|q=" + query.encode())
+        if body:
+            h.update(b"|b=" + hashlib.sha256(body).digest())
+        return "cache:" + base64.urlsafe_b64encode(h.digest()).decode().rstrip("=")
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        if scope["method"] not in ("GET", "HEAD"):
+            return await self.app(scope, receive, send)
+
+        route = scope.get("path", "/")
+        query = scope.get("query_string", b"").decode()
+        user = None
+
+        # Buffer body-less GET
+        body_bytes = b""
+        key = self._key(route, user, query, body_bytes)
+        meta_key = key + ":meta"
+
+        # Try cache
+        raw = await self.redis.get(key)
+        meta = await self.redis.hgetall(meta_key)
+        if raw and meta:
+            CACHE_HIT.labels(route=route).inc()
+            # Serve fresh or stale
+            age = time.time() - float(meta.get(b"ts", b"0"))
+            if age > self.default_ttl and age <= self.swr_ttl:
+                CACHE_STALE.labels(route=route).inc()
+                # kick background refresh
+                asyncio.create_task(self._refresh(scope, receive, key, meta_key, route))
+            headers = [(b"content-type", meta.get(b"ct", b"application/json"))]
+            await send({"type": "http.response.start", "status": int(meta.get(b"status", b"200")), "headers": headers})
+            await send({"type": "http.response.body", "body": raw})
+            return
+
+        CACHE_MISS.labels(route=route).inc()
+        # Miss → proxy to app; capture response
+        await self._populate_and_forward(scope, receive, send, key, meta_key, route)
+
+    async def _refresh(self, scope, receive, key, meta_key, route):
+        try:
+            CACHE_FILL.labels(route=route).inc()
+            await self._populate(scope, key, meta_key, route)
+        finally:
+            CACHE_FILL.labels(route=route).dec()
+
+    async def _populate_and_forward(self, scope, receive, send, key, meta_key, route):
+        # Intercept downstream response
+        chunks = []
+        status_code = 200
+        headers = {}
+
+        async def send_wrapper(message):
+            nonlocal status_code, headers, chunks
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+                headers = {k.decode(): v.decode() for k, v in message.get("headers", [])}
+            elif message["type"] == "http.response.body":
+                body = message.get("body", b"")
+                if body:
+                    chunks.append(body)
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+        # Populate cache (best-effort)
+        try:
+            body = b"".join(chunks)
+            ct = headers.get("content-type", "application/json")
+            pipe = self.redis.pipeline()
+            pipe.set(key, body, ex=self.swr_ttl)
+            pipe.hmset(meta_key, mapping={"status": str(status_code), "ct": ct, "ts": str(time.time())})
+            pipe.expire(meta_key, self.swr_ttl)
+            await pipe.execute()
+        except Exception:
+            pass
+
+    async def _populate(self, scope, key, meta_key, route):
+        # Clone scope minimally for GET refresh
+        chunks = []
+        status_code = 200
+        headers = {}
+
+        async def blackhole_send(message):
+            nonlocal status_code, headers, chunks
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+                headers = {k.decode(): v.decode() for k, v in message.get("headers", [])}
+            elif message["type"] == "http.response.body":
+                body = message.get("body", b"")
+                if body:
+                    chunks.append(body)
+
+        await self.app(scope, _noop_receive, blackhole_send)  # _noop_receive can return empty body for refresh
+        body = b"".join(chunks)
+        ct = headers.get("content-type", "application/json")
+        pipe = self.redis.pipeline()
+        pipe.set(key, body, ex=self.swr_ttl)
+        pipe.hmset(meta_key, mapping={"status": str(status_code), "ct": ct, "ts": str(time.time())})
+        pipe.expire(meta_key, self.swr_ttl)
+        await pipe.execute()
+
+async def _noop_receive():
+    return {"type": "http.request", "body": b"", "more_body": False}

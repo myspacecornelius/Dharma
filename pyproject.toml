@@ -1,3 +1,10 @@
+[project]
+name = "snpd"
+version = "0.1.0"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]
@@ -20,7 +27,7 @@ warn_unused_ignores = true
 warn_return_any = true
 strict_equality = true
 plugins = ["pydantic.mypy"]
-
+ruff.args = ["--config=/path/to/pyproject.toml"]
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-q"
