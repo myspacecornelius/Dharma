@@ -1,105 +1,137 @@
-# SneakerSniper Bot Engine - Optimized Architecture
+# Dharma
 
-A high-performance, microservices-based sneaker bot platform designed for speed, scalability, and observability.
+Dharma is a next-generation checkout automation and community platform, originally incubated as SNPD. It has since evolved into a broader ecosystem focused on resilient automation, decentralized/tokenized community interaction, and extensible adapters for commerce flows.
 
-## ✨ Features
+The project combines robust tooling (checkout orchestration, anti-bot hygiene, adapters for multiple sites) with a roadmap for community governance and tokenized incentives, enabling users to participate in and benefit from the ecosystem they help power.
 
--   **Microservices Architecture:** Independent services for API, monitoring, and checkout, enabling scalability and resilience.
--   **Dual-Mode Checkout:** Supports both fast `request` mode and robust `browser` mode (via Playwright) for bypassing anti-bot measures.
--   **Natural Language Commands:** An intuitive chat-based interface to control the bot.
--   **Real-time Monitoring:** High-frequency product stock monitoring with WebSocket updates to the frontend.
--   **Comprehensive Observability:** Pre-configured Grafana dashboards for monitoring system health and performance metrics via Prometheus.
--   **Secure by Design:** End-to-end encryption for sensitive profile data like credit card numbers.
+⸻
 
-## 🚀 Technology Stack
+## 🚀 Project Overview
+* **Core Purpose**: Automate checkout and carting flows with extensibility across retailers, while providing a community-driven, privacy-conscious backbone.
+* **Vision**: Move beyond isolated automation scripts toward a production-ready framework that supports decentralized community participation, token incentives, and a plug-and-play adapter architecture.
+* **Key Concepts**:
+    * Checkout orchestration with retries, logging, and error handling
+    * Multi-SKU carting and simulation harnesses
+    * Adapter registry for new site integrations
+    * Tokenized community environment for contribution and governance
 
--   **Frontend:** React (TypeScript)
--   **Backend:** Python, FastAPI (API Gateway), Celery (Task Queue)
--   **Database:** PostgreSQL (for persistent data like profiles and orders)
--   **Cache & Message Broker:** Redis
--   **Containerization:** Docker & Docker Compose
--   **Observability:** Prometheus & Grafana
+⸻
 
-## 🏗️ Project Structure
+## 🛠️ Technical Overview
 
-```
-.
-├── frontend/         # React frontend application
-├── infra/            # Prometheus & Grafana configurations
-├── services/
-│   ├── api/          # FastAPI gateway, handles all client requests
-│   ├── checkout/     # Manages and executes checkout tasks
-│   ├── monitor/      # Runs high-frequency stock monitors
-│   └── ...
-├── worker/           # Celery worker for background processing
-├── docker-compose.yml # Defines all services for local development
-├── setup.sh          # Initialization script
-└── README.md         # You are here
-```
+Dharma is structured around modular services and tools:
+* `services/`: Contains core checkout orchestration, adapters, and APIs.
+    * `checkout/` – orchestrates carting, retries, error handling
+    * `adapters/` – site-specific integrations for automated checkout
+    * `community/` – backend for decentralized/tokenized participation (in-progress scaffolding)
+* `tools/`: Utilities for CLI operations, testing harnesses, and adapter debugging.
+* `tests/`: Unit and integration test suites (with TODOs for adapter simulation tests).
+* `workflows/`: CI/CD, health checks, and resilience scaffolds for automated deployment.
 
-## 🏁 Quick Start
+⸻
 
-Follow these steps to get the entire platform running on your local machine.
+## ⚙️ Tech Stack
+* **Languages**: Python (services, tools, adapters), JavaScript/TypeScript (front-end + future dashboard)
+* **Frameworks / Libraries**:
+    * FastAPI / Flask (backend services)
+    * Playwright / Puppeteer (browser automation, checkout simulation)
+    * Pytest (testing suite)
+* **Infrastructure**: Dockerized services, GitHub Actions workflows
 
-### Prerequisites
+⸻
 
--   Docker
--   Docker Compose
+## 📋 Requirements
+* Python 3.11+
+* Node.js 20+ (for future front-end scaffolds & tooling)
+* Docker (recommended for containerized runs)
+* Git
 
-### 1. Setup
+⸻
 
-Run the setup script to initialize the environment. This will create a `.env` file from the example and prepare service directories.
+## 🔧 Setup & Installation
 
-```bash
-./setup.sh
-```
-
-### 2. Configuration
-
-The `setup.sh` script creates a `.env` file. You **must** edit this file to provide the necessary secrets.
-
--   **Generate an Encryption Key:** The checkout service requires a secret key to encrypt user profiles. Generate one and add it to your `.env` file.
-
-    ```bash
-    # Run this once and copy the output to ENCRYPTION_KEY in .env
-    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-    ```
-
-### 3. Launch Services
-
-Build and launch all services using Docker Compose. The `Makefile` provides a convenient shortcut.
+Clone the repository:
 
 ```bash
-docker-compose up --build -d
+git clone https://github.com/myspacecornelius/Dharma.git
+cd Dharma
 ```
 
-You can view logs for all services with `docker-compose logs -f`.
+Set up a virtual environment:
 
-## 💻 Usage
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-Once the services are running, you can access the different parts of the platform.
+Install Node dependencies (optional, for UI/dev tools):
 
-### Access Points
+```bash
+npm install
+```
 
--   **Frontend UI:** http://localhost:5173
-    -   This is the main control center. Use the chat interface to issue commands.
--   **API Gateway:** http://localhost:8000/docs
-    -   Interactive API documentation (Swagger UI).
--   **Grafana Dashboards:** http://localhost:3000
-    -   Login with `admin` / `admin`.
-    -   View pre-configured dashboards for system health and checkout metrics.
+Run services locally:
 
-### Example Commands
+```bash
+uvicorn services.api.main:app --reload
+```
 
-Interact with the bot using natural language in the frontend chat window:
+⸻
 
--   `monitor travis scott jordan 1 low`
--   `run 100 checkouts using main-profile`
--   `clear all tasks`
--   `what is the current success rate?`
+## 💻 Key Commands & Usage
 
-## 🔧 Development
+Run checkout flow with a given adapter:
 
--   **Live Reload:** The FastAPI (`api`) service is configured with live reload. Any changes to the code in `services/api/` will automatically restart the service.
--   **Stopping Services:** To stop all running containers, run `docker-compose down`.
--   **Viewing Logs:** To view logs from a specific service, use `docker-compose logs -f <service_name>`, e.g., `docker-compose logs -f checkout`.
+```bash
+python tools/run_checkout.py --site nike --sku 12345
+```
+
+Run adapter simulation (browser-mode):
+
+```bash
+python tools/simulate_checkout.py --site adidas --dry-run
+```
+
+Run tests:
+
+```bash
+pytest tests/
+```
+
+Build & run Docker services:
+
+```bash
+docker compose up --build
+```
+
+⸻
+
+## 🧩 Development Guide
+
+### Adding a New Adapter
+1. Create a new file under `services/checkout/adapters/`.
+2. Implement required methods (`add_to_cart`, `checkout`, `handle_captcha`, etc.).
+3. Register the adapter in the adapter registry (`services/checkout/registry.py`).
+4. Write simulation + test cases in `tests/adapters/`.
+
+### Resilience Features
+* Built-in retries with exponential backoff
+* Configurable timeouts
+* Logging hooks for CI/CD monitoring
+
+### Anti-Bot Hygiene
+* Human-like browser flows (Playwright scaffolding)
+* Proxy rotation and rate limiting
+* TODO: Machine-learning-based request pattern randomization
+
+⸻
+
+## 🌐 Community & Tokenization Roadmap
+
+The Dharma roadmap includes evolving into a tokenized community environment:
+* **Contribution Rewards**: Developers earn tokens for new adapters, bug fixes, and infrastructure improvements.
+* **Governance**: Token-holders influence feature priorities and community rules.
+* **Marketplace**: Potential for decentralized exchange of adapters, tools, or community services.
+
+Current Status: Backend scaffolds (`services/community/`) are live; tokenized logic remains TODO with smart contract stubs to be introduced.
