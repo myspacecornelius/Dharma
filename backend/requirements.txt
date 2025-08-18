@@ -1,10 +1,9 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
 psycopg2-binary
-pydantic
 alembic
 python-dotenv
-boto3
-Faker
+celery
 redis
+prometheus-fastapi-instrumentator
