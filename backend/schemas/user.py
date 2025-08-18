@@ -1,15 +1,16 @@
 
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel, UUID4, EmailStr
 from typing import Optional
 
 class UserBase(BaseModel):
     username: str
+    email: EmailStr
     display_name: str
     avatar_url: Optional[str] = None
     is_anonymous: bool = False
 
 class UserCreate(UserBase):
-    pass
+    password: str
 
 class User(UserBase):
     user_id: UUID4
