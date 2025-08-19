@@ -10,36 +10,30 @@ broker_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 result_backend = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
 # Task settings
-task_serializer = 'json'
-result_serializer = 'json'
-accept_content = ['json']
+task_serializer = 'pickle'
+result_serializer = 'pickle'
+accept_content = ['json', 'pickle']
 timezone = 'UTC'
 enable_utc = True
 
 # Performance settings
-worker_prefetch_multiplier = 4
+worker_prefetch_multiplier = 1
 worker_max_tasks_per_child = 1000
 worker_disable_rate_limits = False
 task_compression = 'gzip'
 
 # Task routing
 task_routes = {
-    'worker.tasks.process_checkout_batch': {'queue': 'checkout_high'},
-    'worker.tasks.warm_account': {'queue': 'warming'},
-    'worker.tasks.rotate_proxies': {'queue': 'maintenance'},
-    'worker.tasks.analyze_checkout_performance': {'queue': 'analytics'},
-    'worker.tasks.cleanup_old_data': {'queue': 'maintenance'},
-    'worker.tasks.broadcast_update': {'queue': 'realtime'}
+    'checkout.*': {'queue': 'high_priority'},
+    'monitoring.*': {'queue': 'medium_priority'},
+    'community.*': {'queue': 'low_priority'}
 }
 
 # Queue configuration
 task_queues = (
-    Queue('checkout_high', Exchange('checkout'), routing_key='checkout.high', priority=10),
-    Queue('checkout_low', Exchange('checkout'), routing_key='checkout.low', priority=1),
-    Queue('warming', Exchange('warming'), routing_key='warming.#'),
-    Queue('maintenance', Exchange('maintenance'), routing_key='maintenance.#'),
-    Queue('analytics', Exchange('analytics'), routing_key='analytics.#'),
-    Queue('realtime', Exchange('realtime'), routing_key='realtime.#'),
+    Queue('high_priority', Exchange('high_priority'), routing_key='high_priority'),
+    Queue('medium_priority', Exchange('medium_priority'), routing_key='medium_priority'),
+    Queue('low_priority', Exchange('low_priority'), routing_key='low_priority'),
 )
 
 # Task time limits
@@ -68,17 +62,17 @@ beat_schedule = {
     'rotate-proxies': {
         'task': 'worker.tasks.rotate_proxies',
         'schedule': 300.0,  # Every 5 minutes
-        'options': {'queue': 'maintenance'}
+        'options': {'queue': 'medium_priority'}
     },
     'analyze-performance': {
         'task': 'worker.tasks.analyze_checkout_performance',
         'schedule': 900.0,  # Every 15 minutes
-        'options': {'queue': 'analytics'}
+        'options': {'queue': 'low_priority'}
     },
     'daily-cleanup': {
         'task': 'worker.tasks.cleanup_old_data',
         'schedule': 86400.0,  # Daily
-        'options': {'queue': 'maintenance'}
+        'options': {'queue': 'low_priority'}
     }
 }
 
@@ -95,6 +89,5 @@ task_annotations = {
     },
     'worker.tasks.process_checkout_batch': {
         'rate_limit': '1000/m',  # Higher rate for checkouts
-        'priority': 10
     }
 }

@@ -9,7 +9,7 @@ class Post(Base):
     __tablename__ = "posts"
 
     post_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     content_type = Column(Enum('text', 'image', 'video', name='content_type_enum'), nullable=False)
     content_text = Column(String, nullable=True)
     media_url = Column(String, nullable=True)
@@ -18,4 +18,5 @@ class Post(Base):
     geo_tag_long = Column(Float, nullable=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     visibility = Column(Enum('public', 'local', 'friends', name='visibility_enum'), nullable=False, default='public')
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 

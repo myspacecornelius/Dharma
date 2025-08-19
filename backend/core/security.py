@@ -5,7 +5,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 
 from .. import models, schemas
@@ -54,6 +54,11 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     db.close()
     if user is None:
         raise credentials_exception
+    return user
+
+def get_current_user_with_tier(request: Request, token: str = Depends(oauth2_scheme)):
+    user = get_current_user(token)
+    request.state.user_tier = user.tier
     return user
 
 def get_current_admin_user(current_user: models.User = Depends(get_current_user)):

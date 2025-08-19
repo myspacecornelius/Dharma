@@ -1,12 +1,14 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-psycopg2-binary
 alembic
 python-dotenv
 celery
-redis
 prometheus-fastapi-instrumentator
 boto3
 python-jose[cryptography]
 passlib[bcrypt]
+asyncpg
+aioredis
+fastapi-cache2
+slowapi
