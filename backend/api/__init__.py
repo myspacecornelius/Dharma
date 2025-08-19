@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter
 
-from . import users, posts, releases, subscriptions, uploads, auth
+from . import users, posts, releases, subscriptions, uploads, auth, analytics
 
 router = APIRouter()
 
@@ -11,3 +11,4 @@ router.include_router(posts.router, prefix="/posts", tags=["posts"])
 router.include_router(releases.router, prefix="/releases", tags=["releases"])
 router.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
 router.include_router(uploads.router, prefix="/uploads", tags=["uploads"])
+router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
