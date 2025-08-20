@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SNPD",
-  description: "Social Network for People with Disposable income",
+  title: "Dharma",
+  description: "Sneakerhead-native community app with hyperlocal feeds",
 };
 
 export default function RootLayout({
@@ -28,16 +29,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <nav className="bg-gray-800 text-white p-4">
-          <div className="container mx-auto flex justify-between">
-            <Link href="/" className="font-bold">SNPD</Link>
-            <div>
-              <Link href="/" className="mr-4">Home</Link>
-              <Link href="/releases">Releases</Link>
+        <Providers>
+          <nav className="bg-gray-800 text-white p-4">
+            <div className="container mx-auto flex justify-between">
+              <Link href="/" className="font-bold text-xl">Dharma</Link>
+              <div>
+                <Link href="/" className="mr-4 hover:text-gray-300">Feed</Link>
+                <Link href="/releases" className="hover:text-gray-300">Releases</Link>
+              </div>
             </div>
-          </div>
-        </nav>
-        {children}
+          </nav>
+          {children}
+        </Providers>
       </body>
     </html>
   );
