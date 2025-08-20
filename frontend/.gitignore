@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Alembic config (ignore local ini; track versions)
+services/api/alembic.ini
+alembic.ini
