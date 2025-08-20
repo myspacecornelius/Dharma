@@ -6,7 +6,11 @@ from backend.core.database import SessionLocal
 from backend.models.user import User
 from backend.models.post import Post
 from backend.models.release import Release
+from backend.models.location import Location
+from backend.models.laces import LacesLedger
 from backend.core.security import get_password_hash
+from backend.core.locations import create_location_and_post
+from backend.core.laces import add_laces_to_user
 from datetime import datetime, timedelta
 
 fake = Faker()
@@ -14,35 +18,102 @@ fake = Faker()
 def seed_data():
     db: Session = SessionLocal()
 
+    # Clear existing data (optional, for clean seeding)
+    db.query(LacesLedger).delete()
+    db.query(Post).delete()
+    db.query(Location).delete()
+    db.query(User).delete()
+    db.query(Release).delete()
+    db.commit()
+
+    # Create specific users for Boston and NYC
+    boston_user = User(
+        username="boston_sneakerhead",
+        email="boston@example.com",
+        display_name="Boston Kicks",
+        avatar_url=fake.image_url(),
+        password_hash=get_password_hash("password"),
+        is_anonymous=False,
+        laces_balance=1000 # Give them some laces
+    )
+    nyc_user = User(
+        username="nyc_hypebeast",
+        email="nyc@example.com",
+        display_name="NYC Heat",
+        avatar_url=fake.image_url(),
+        password_hash=get_password_hash("password"),
+        is_anonymous=False,
+        laces_balance=1000 # Give them some laces
+    )
+    db.add_all([boston_user, nyc_user])
+    db.commit()
+    db.refresh(boston_user)
+    db.refresh(nyc_user)
+
     # Create 50 fake users
-    users = []
-    for _ in range(50):
+    users = [boston_user, nyc_user]
+    for _ in range(48):
         user = User(
             username=fake.user_name(),
             email=fake.email(),
             display_name=fake.name(),
             avatar_url=fake.image_url(),
             password_hash=get_password_hash("password"),
-            is_anonymous=random.choice([True, False])
+            is_anonymous=random.choice([True, False]),
+            laces_balance=random.randint(0, 500) # Initial laces balance
         )
         users.append(user)
         db.add(user)
-
     db.commit()
 
-    # Create 200 fake posts
+    # Define some key locations for Boston and NYC
+    boston_locations = [
+        {"name": "TD Garden", "latitude": 42.3661, "longitude": -71.0622},
+        {"name": "Fenway Park", "latitude": 42.3467, "longitude": -71.0972},
+        {"name": "Boston Common", "latitude": 42.3552, "longitude": -71.0656},
+    ]
+
+    nyc_locations = [
+        {"name": "Times Square", "latitude": 40.7580, "longitude": -73.9855},
+        {"name": "Central Park", "latitude": 40.7850, "longitude": -73.9683},
+        {"name": "Statue of Liberty", "latitude": 40.6892, "longitude": -74.0445},
+    ]
+
+    # Create posts (signals) for Boston
+    for loc_data in boston_locations:
+        for _ in range(random.randint(3, 7)): # 3-7 posts per location
+            signal_content = PostCreate(
+                content=f"Spotted some fresh kicks near {loc_data['name']}! #BostonSneakers",
+                latitude=loc_data['latitude'] + random.uniform(-0.001, 0.001), # Slight variation
+                longitude=loc_data['longitude'] + random.uniform(-0.001, 0.001),
+                post_type=random.choice(['text', 'image']),
+                tags=random.sample(['#Boston', '#SneakerDrop', '#Heat', '#LocalFinds'], k=random.randint(1, 3))
+            )
+            create_location_and_post(db, signal_content, boston_user.id)
+
+    # Create posts (signals) for NYC
+    for loc_data in nyc_locations:
+        for _ in range(random.randint(3, 7)): # 3-7 posts per location
+            signal_content = PostCreate(
+                content=f"NYC is buzzing with new releases near {loc_data['name']}! #NYCSneakers",
+                latitude=loc_data['latitude'] + random.uniform(-0.001, 0.001),
+                longitude=loc_data['longitude'] + random.uniform(-0.001, 0.001),
+                post_type=random.choice(['text', 'image']),
+                tags=random.sample(['#NYC', '#SneakerCulture', '#LimitedEdition', '#Streetwear'], k=random.randint(1, 3))
+            )
+            create_location_and_post(db, signal_content, nyc_user.id)
+
+    # Create 200 fake posts (general, not tied to specific locations)
     for _ in range(200):
-        post = Post(
-            user_id=random.choice(users).user_id,
-            content_type=random.choice(['text', 'image', 'video']),
-            content_text=fake.text() if random.random() > 0.3 else None,
-            media_url=fake.image_url() if random.random() > 0.5 else None,
-            tags=random.sample(['#Jordan4', '#Nike', '#Restock', '#tech', '#art'], k=random.randint(1, 4)),
-            geo_tag_lat=float(fake.latitude()),
-            geo_tag_long=float(fake.longitude()),
-            visibility=random.choice(['public', 'local', 'friends'])
+        random_user = random.choice(users)
+        signal_content = PostCreate(
+            content=fake.text(),
+            latitude=float(fake.latitude()),
+            longitude=float(fake.longitude()),
+            post_type=random.choice(['text', 'image', 'video']),
+            tags=random.sample(['#Jordan4', '#Nike', '#Restock', '#tech', '#art'], k=random.randint(1, 4))
         )
-        db.add(post)
+        create_location_and_post(db, signal_content, random_user.id)
 
     # Create 10 fake releases
     for _ in range(10):

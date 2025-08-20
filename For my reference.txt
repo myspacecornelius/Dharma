@@ -1,0 +1,88 @@
+For my reference can ignore:
+
+This is an excellent design challenge that aligns perfectly with the Dharma Product Charter. Building a strong hyperlocal experience is key to making the platform feel like a real, breathing community for sneakerheads. Here is a proposal for features and a backend plan, starting with an MVP and scaling up.
+
+1. Hyperlocal Feature Ideas
+Here are concrete features, starting with a core MVP and then extending into more advanced capabilities.
+
+MVP Features (The "Local Pulse")
+This is the simplest version to test the core idea of hyperlocal interaction.
+
+The Local Feed: A real-time, anonymous-by-default feed of posts from users within a specific geographic radius (e.g., 1-5 miles).
+Inspiration: Yik Yak's core mechanic.
+Sneaker-Native Twist: The feed is for sharing intel like "Just saw a full-size run of Panda Dunks at the Nike store on 5th Ave," asking "Anyone know if the line is long for the Union drop?" or posting "On-foot sighting of the new J Balvins."
+"Heat Check" Posts: A dedicated post type for sharing a photo of a cool sneaker spotted in the wild. It's lightweight, visual, and location-stamped.
+Inspiration: Instagram's visual-first feel, but ephemeral and local.
+Basic Karma: A simple upvote/downvote system for posts.
+Earning: Users gain "Karma" for getting upvotes on their posts and comments. This is a visible reputation score on their profile.
+No Spending (yet): For the MVP, Karma is purely for reputation.
+V2+ Features (Deepening Community & Trust)
+These features build on the MVP to create a more robust and engaging system.
+
+"Drop Zones" (Event-Based Feeds):
+Concept: Temporary, geofenced chat rooms that activate around specific locations during key events like a sneaker drop, a store opening, or a convention like Sneaker Con.
+Functionality: Only users physically within the geofence can post, ensuring the intel is first-hand. Anyone can view. Users can subscribe to a Drop Zone for push notifications.
+Structured Intel Reports:
+Concept: Move beyond simple text posts to structured, verifiable reports.
+Types:
+Stock Check: A form to submit store, sneaker model, available sizes, and price.
+Raffle Report: A form for local raffle details (store, entry method, deadline).
+Legit Check: Users can post images of a sneaker, and the local community can vote on its authenticity.
+Trust Mechanic: Other users in the area can vote to "Confirm" or "Deny" a report. Confirmed intel gives the original poster a significant Karma boost.
+Hyperlocal Leaderboards & Roles:
+"Local Legends": Leaderboards showcasing users with the highest Karma in a specific city or neighborhood.
+Badges: Award badges for specific contributions, like "First to Report" on a shock drop or "Top Legit-Checker."
+Anti-Abuse & Moderation:
+Karma-Gated Actions: High-impact actions, like creating a Drop Zone or flagging content, could require a minimum Karma score.
+Downvote Sink: Posts that receive a high number of downvotes are automatically hidden or deprioritized.
+AI-Powered Moderation: Integrate with a service like Perspective API to automatically flag toxic content or spam.
+2. High-Level Backend Plan
+Here’s how we can implement these features, building on your existing FastAPI and PostgreSQL stack.
+
+Data Models (SQLAlchemy)
+We'll need to introduce new models in backend/models/ and likely create a new Alembic migration.
+
+Location
+id (UUID, PK)
+latitude (Float)
+longitude (Float)
+geohash (String, Indexed) - For efficient radius-based queries in the MVP.
+point (Geography(Point, srid=4326)) - For V2, using PostGIS for more powerful spatial queries.
+Post (Extending the existing model)
+location_id (FK to Location)
+post_type (Enum: FEED, HEAT_CHECK, INTEL_REPORT)
+upvotes / downvotes (Integer)
+karma_value (Integer, calculated)
+Vote
+id (UUID, PK)
+user_id (FK to User)
+post_id (FK to Post)
+value (Integer: 1 or -1)
+Event (For Drop Zones)
+id (UUID, PK)
+name (String)
+center_point (Geography(Point, srid=4326))
+radius_meters (Integer)
+starts_at / ends_at (DateTime)
+User Model Extension
+Add a karma (Integer, default 0) field to the existing User model.
+APIs and Endpoints
+I'd create a new API file: backend/api/hyperlocal.py.
+
+POST /v1/posts: Create a new post. Requires content, latitude, and longitude.
+GET /v1/feed: Get the local feed. Requires latitude, longitude, and radius_km as query parameters.
+POST /v1/posts/{post_id}/vote: Submit an upvote or downvote.
+GET /v1/events: List active Drop Zones, filterable by location.
+GET /v1/events/{event_id}/feed: Get the real-time feed for a specific Drop Zone (likely via WebSockets).
+Database Schema & Services
+MVP Database: For the initial version, we can use a geohash on the Location table. We can calculate distances manually or use a library to find posts within a given radius. This avoids adding a heavy dependency right away.
+V2 Database (PostGIS): To scale and support more complex queries (like "posts within this complex polygon"), we should introduce the PostGIS extension for PostgreSQL. This allows for highly efficient spatial indexing (using a GiST index on the point column) and querying.
+Real-time Service (WebSockets): For the Drop Zone feeds, a real-time component is essential.
+A client connects to a WebSocket endpoint (e.g., /ws/events/{event_id}).
+When a new post is created for that event, the API publishes the post data to a Redis Pub/Sub channel.
+A WebSocket manager service listens to the Redis channels and pushes the new post data to all connected clients for that event.
+Geocoding/Reverse Geocoding Service: An external service (like Google Maps API or a self-hosted one) could be used to convert lat/lon coordinates into human-readable addresses (e.g., "near 123 Main St").
+Scalability Considerations
+Database Load: The /feed endpoint will be extremely read-heavy. We should heavily cache the results of feed queries in Redis. The cache key could be based on a truncated geohash and the requested radius.
+Spatial Indexing: As the number of posts grows, efficient spatial indexing becomes critical. A simple B-tree index on the geohash column will work for the MVP, but a GiST index with PostGIS is the proper long-term solution.
+WebSocket Connections: The real-time service managing WebSocket connections should be horizontally scalable and stateless, using Redis to manage connection state and subscriptions.

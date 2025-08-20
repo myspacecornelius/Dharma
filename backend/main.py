@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api import router as api_router
+from .api import hyperlocal
 
 app = FastAPI()
 
@@ -15,6 +16,7 @@ app.add_middleware(
 
 # Include API router
 app.include_router(api_router)
+app.include_router(hyperlocal.router, prefix="/v1", tags=["hyperlocal"])
 
 if __name__ == "__main__":
     import uvicorn

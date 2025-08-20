@@ -15,6 +15,7 @@ venv/
 ENV/
 env/
 .venv
+snpd.egg-info/
 
 # Environment variables
 .env
@@ -43,3 +44,6 @@ coverage/
 # User data
 user_data/
 profiles/
+
+# Custom ignores
+services/api/alembic.ini

@@ -1,6 +1,14 @@
 # Dharma
 
-Dharma is a next-generation checkout automation and community platform, originally incubated as SNPD. It has since evolved into a broader ecosystem focused on resilient automation, decentralized/tokenized community interaction, and extensible adapters for commerce flows.
+[![Python Version](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![CI](https://github.com/myspacecornelius/Dharma/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/myspacecornelius/Dharma/actions/workflows/ci-cd.yml)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/myspacecornelius/Dharma)
+
+Dharma
+
+Dharma is an in-development platform for the sneakerhead community — built to go beyond bots.
+It’s designed as the backbone of a next-generation sneakerhead network: combining the speed of automated checkout with the culture of cook groups, hyperlocal feeds, and tokenized participation.
+
 
 The project combines robust tooling (checkout orchestration, anti-bot hygiene, adapters for multiple sites) with a roadmap for community governance and tokenized incentives, enabling users to participate in and benefit from the ecosystem they help power.
 
@@ -45,6 +53,46 @@ Dharma is structured around modular services and tools:
 * Node.js 20+ (for future front-end scaffolds & tooling)
 * Docker (recommended for containerized runs)
 * Git
+
+⸻
+
+## ☁️ Development with GitHub Codespaces
+
+This repository is configured for [GitHub Codespaces](https://github.com/features/codespaces) to provide a ready-to-use development environment.
+
+To get started:
+1.  Click the "Code" button on the repository's page and select "Open with Codespaces".
+2.  Once the Codespace is created, it will automatically install all dependencies.
+3.  When the setup is complete, run the services with one command:
+
+```bash
+make up
+```
+
+Your development environment is now running!
+
+⸻
+
+## 🚀 Running the Project
+
+This project can be run in different environments. Here's a quick comparison:
+
+| Environment      | Setup                                                     | Use Case                               |
+| ---------------- | --------------------------------------------------------- | -------------------------------------- |
+| **GitHub Codespaces** | Easiest. Click "Open in Codespaces".                      | Quick start, standardized dev env.     |
+| **Docker**       | `docker compose up`. Requires Docker Desktop.             | Local dev, simulates production.       |
+| **Local Host**   | `pip install`, run services manually. Requires Python/DB. | Advanced debugging, custom setups.     |
+
+### Key Commands
+
+This project uses a `Makefile` to simplify common tasks. Here are the most important commands:
+
+| Command         | Description                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------- |
+| `make up`       | Starts all services (API, worker, etc.) in the background using Docker Compose.          |
+| `make migrate`  | Applies database migrations. Run this after changing models.                             |
+| `make doctor`   | Runs a health check to ensure your environment is set up correctly.                      |
+| `make test`     | Runs the backend test suite using `pytest`.                                              |
 
 ⸻
 
