@@ -127,6 +127,17 @@ uvicorn services.api.main:app --reload
 
 ⸻
 
+## Frontend Quickstart
+
+To run the frontend development server:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+
 ## 💻 Key Commands & Usage
 
 Run checkout flow with a given adapter:
