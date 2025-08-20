@@ -34,3 +34,6 @@ grafana:
 	@echo "Default login: admin / admin"
 
 all: build up
+
+migrate:
+	alembic -c backend/alembic.ini upgrade head
