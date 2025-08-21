@@ -1,7 +1,162 @@
-redis>=5
-httpx>=0.27
-prometheus-client>=0.20
-uvicorn>=0.30
-starlette>=0.37
-prometheus-client
-starlette-exporter
+redis==5.0.1
+httpx==0.26.0
+prometheus-client==0.19.0
+uvicorn==0.27.0
+starlette==0.35.1
+starlette-exporter==0.23.0
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+SERVICES=(
+  "."
+  "backend"
+  "services/api"
+  "services/monitor"
+  "services/checkout"
+  "services/proxy"
+  "worker"
+)
+
+have_uv() { command -v uv >/dev/null 2>&1; }
+
+trap 'echo "❌ Failed in service: ${svc:-unknown}"; exit 1' ERR
+
+for svc in "${SERVICES[@]}"; do
+  req="${svc}/requirements.txt"
+  [[ -f "$req" ]] || continue
+  svc="${svc}"  # for trap visibility
+  echo "▶ ${svc}"
+
+  cd "$svc"
+
+  if have_uv; then
+    uv venv .venv --python 3.12
+    source .venv/bin/activate
+    uv pip sync requirements.txt
+  else
+    python3 -m venv .venv
+    source .venv/bin/activate
+    python -m pip install --upgrade pip
+    python -m pip install -r requirements.txt
+  fi
+
+  echo "   ↳ Python: $(python --version) | $(python -c 'import sys; print(sys.executable)')"
+  deactivate
+  cd - >/dev/null
+done
+
+echo "✅ Python envs created per service (.venv in each)."
+echo "Tip: run a service with: source <service>/.venv/bin/activate && uvicorn app:app --reload"
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+SERVICES=(
+  "."
+  "backend"
+  "services/api"
+  "services/monitor"
+  "services/checkout"
+  "services/proxy"
+  "worker"
+)
+
+KEY_PKGS=("fastapi" "starlette" "uvicorn" "httpx" "redis" "prometheus-client")
+
+have_uv() { command -v uv >/dev/null 2>&1; }
+exists() { [[ -f "$1" ]]; }
+
+banner() { printf "\n%s\n" "===== $* ====="; }
+
+ensure_env() {
+  local svc="$1"
+  cd "$svc"
+  if [[ ! -d ".venv" ]]; then
+    echo "Creating venv for $svc"
+    if have_uv; then
+      uv venv .venv --python 3.12
+      source .venv/bin/activate
+      uv pip sync requirements.txt
+      deactivate
+    else
+      python3 -m venv .venv
+      source .venv/bin/activate
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt
+      deactivate
+    fi
+  fi
+  cd - >/dev/null
+}
+
+pkg_ver() {
+  local svc="$1" pkg="$2"
+  source "$svc/.venv/bin/activate"
+  python - <<PY
+import importlib, pkgutil, sys
+name = "$pkg".replace("-", "_")
+try:
+    m = importlib.import_module(name)
+    v = getattr(m, "__version__", None)
+    if v is None:
+        import importlib.metadata as im
+        v = im.version("$pkg")
+    print(v)
+except Exception:
+    print("NOT-INSTALLED")
+PY
+  deactivate
+}
+
+run_checks() {
+  local svc="$1"
+  echo "→ Checking $svc"
+  source "$svc/.venv/bin/activate" || { echo "no venv for $svc"; return 1; }
+
+  echo "  pip check:"
+  if have_uv; then uv pip check || true; else python -m pip check || true; fi
+
+  echo "  Outdated:"
+  if have_uv; then uv pip list --outdated || true; else python -m pip list --outdated || true; fi
+
+  # Run tests if present
+  if exists "$svc/pytest.ini" || exists "$svc/pyproject.toml" || [[ -d "$svc/tests" ]]; then
+    echo "  pytest:"
+    python -m pytest -q || true
+  fi
+
+  deactivate
+}
+
+# Ensure envs and run checks
+banner "Ensuring envs"
+for svc in "${SERVICES[@]}"; do
+  [[ -f "$svc/requirements.txt" ]] || continue
+  ensure_env "$svc"
+done
+
+banner "Version matrix (key packages)"
+printf "%-22s" "package/service"
+for svc in "${SERVICES[@]}"; do
+  [[ -f "$svc/requirements.txt" ]] && printf "%-18s" "$svc"
+done
+printf "\n"
+
+for pkg in "${KEY_PKGS[@]}"; do
+  printf "%-22s" "$pkg"
+  for svc in "${SERVICES[@]}"; do
+    [[ -f "$svc/requirements.txt" ]] || continue
+    v=$(pkg_ver "$svc" "$pkg")
+    printf "%-18s" "$v"
+  done
+  printf "\n"
+done
+
+banner "Service checks"
+for svc in "${SERVICES[@]}"; do
+  [[ -f "$svc/requirements.txt" ]] || continue
+  run_checks "$svc"
+done
+
+echo -e "\n✅ Maintenance complete."
