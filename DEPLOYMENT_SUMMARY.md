@@ -184,6 +184,7 @@ DATABASE_URL=postgresql://user:pass@postgres:5432/sniped
 REDIS_URL=redis://redis:6379
 SECRET_KEY=your-secret-key
 ENVIRONMENT=production
+GEMINI_API_KEY=AIzaSyAqYwuHFjEM33iUoi2JwUHu4iVCBU-MOkYy
 ```
 
 ### Frontend Configuration
