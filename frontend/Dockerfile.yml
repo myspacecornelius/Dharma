@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies with lockfile detection (npm/pnpm/yarn)
+COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* .npmrc* ./
+RUN if [ -f package-lock.json ]; then npm ci; \
+    elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm i --frozen-lockfile; \
+    elif [ -f yarn.lock ]; then corepack enable && yarn install --frozen-lockfile; \
+    else npm i; fi
+
+# Copy source last for better layer caching
+COPY . .
+
+EXPOSE 5173
+ENV HOST=0.0.0.0
+CMD [ "npm", "run", "dev", "--", "--host" ]
