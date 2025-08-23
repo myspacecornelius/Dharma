@@ -22,5 +22,5 @@
     }
   },
   "postCreateCommand": "if [ ! -f .env ]; then cp .env.example .env; fi && pip install -r requirements.txt && pip install pre-commit && pre-commit install",
-  "remoteUser": "node"
+  "remoteUser": "root"
 }
