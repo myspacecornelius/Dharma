@@ -5,6 +5,9 @@ import { PostComposer } from "@/components/composer/PostComposer";
 import { posts as mockPosts } from "@/mocks/posts";
 import { useState } from "react";
 
+// TODO(api): Fetch posts from the API instead of using mock data.
+// The expected data shape is defined in docs/FRONTEND_HANDOFF.md.
+
 export const FeedPage = () => {
     const [posts, setPosts] = useState(mockPosts);
 

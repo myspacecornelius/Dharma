@@ -2,6 +2,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// TODO(api): Fetch drop zones from the API instead of using mock data.
+// The expected data shape is defined in docs/FRONTEND_HANDOFF.md.
+// TODO(websocket): Connect to WebSocket for real-time event feed updates.
+
 const dropZones = [
     {
         id: "1",

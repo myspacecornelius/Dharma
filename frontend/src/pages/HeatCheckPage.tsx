@@ -9,9 +9,12 @@ import { posts as mockPosts } from "@/mocks/posts";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
+// TODO(api): Fetch posts from the API instead of using mock data.
+// The expected data shape is defined in docs/FRONTEND_HANDOFF.md.
+
 export const HeatCheckPage = () => {
     const [posts, setPosts] = useState(
-        mockPosts.filter((post) => post.post_type === "heat_check")
+        mockPosts.filter((post) => post.post_type === "heat_check") as any[]
     );
 
     const handleSavePost = (newPost: any) => {

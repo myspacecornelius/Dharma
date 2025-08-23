@@ -3,6 +3,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// TODO(api): Fetch profile data from the API instead of using mock data.
+// The expected data shape is defined in docs/FRONTEND_HANDOFF.md.
+
 export const ProfilePage = () => {
     return (
         <div className="space-y-4">
