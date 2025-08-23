@@ -127,6 +127,23 @@ uvicorn services.api.main:app --reload
 
 ⸻
 
+## 📄 Environment Setup
+
+This project requires environment variables to configure database, cache, and API access. Copy `.env.example` to `.env` and fill in the appropriate values for your setup.
+
+| Variable              | Description                                 | Consumed By            |
+| --------------------- | ------------------------------------------- | ---------------------- |
+| `POSTGRES_USER`       | Database username                           | API, Worker (DB)       |
+| `POSTGRES_PASSWORD`   | Database password                           | API, Worker (DB)       |
+| `POSTGRES_DB`         | Database name                               | API, Worker (DB)       |
+| `DATABASE_URL`        | Full SQLAlchemy URL                         | API (FastAPI), Worker  |
+| `REDIS_URL`           | Redis connection string                     | API, Worker (queue)    |
+| `API_PORT`            | Port for running the FastAPI service        | API                    |
+| `FRONTEND_PORT`       | Port for the Vite frontend dev server       | Frontend               |
+| `GEMINI_API_KEY`      | External Gemini API key (if integrating AI) | API, Worker            |
+
+➡️ See `.env.example` in the repository root for the canonical template.
+
 ## Frontend Quickstart
 
 To run the frontend development server:
