@@ -1,6 +1,7 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { KarmaBar } from "./KarmaBar";
 import { PostMetaBar } from "./PostMetaBar";
+import { motion } from "framer-motion";
 
 type PostCardProps = {
     post: {
@@ -17,22 +18,28 @@ type PostCardProps = {
 
 export const PostCard = ({ post }: PostCardProps) => {
     return (
-        <Card>
-            <CardContent className="p-4">
-                <PostMetaBar
-                    author={post.author}
-                    distance={post.distance}
-                    timestamp={post.timestamp}
-                />
-                <p className="mt-4">{post.content}</p>
-            </CardContent>
-            <CardFooter className="p-4">
-                <KarmaBar
-                    karma={post.karma}
-                    onUpvote={() => { }}
-                    onDownvote={() => { }}
-                />
-            </CardFooter>
-        </Card>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+        >
+            <Card>
+                <CardContent className="p-4">
+                    <PostMetaBar
+                        author={post.author}
+                        distance={post.distance}
+                        timestamp={post.timestamp}
+                    />
+                    <p className="mt-4">{post.content}</p>
+                </CardContent>
+                <CardFooter className="p-4">
+                    <KarmaBar
+                        karma={post.karma}
+                        onUpvote={() => { }}
+                        onDownvote={() => { }}
+                    />
+                </CardFooter>
+            </Card>
+        </motion.div>
     );
 };

@@ -1,12 +1,16 @@
 import { HeatCheckCard } from "@/components/posts/HeatCheckCard";
 import { IntelReportCard } from "@/components/posts/IntelReportCard";
 import { PostCard } from "@/components/posts/PostCard";
-import { Button } from "@/components/ui/button";
+import { PostComposer } from "@/components/composer/PostComposer";
 import { posts as mockPosts } from "@/mocks/posts";
 import { useState } from "react";
 
 export const FeedPage = () => {
     const [posts, setPosts] = useState(mockPosts);
+
+    const handleSavePost = (newPost: any) => {
+        setPosts(prevPosts => [newPost, ...prevPosts]);
+    };
 
     const renderPost = (post: any) => {
         switch (post.post_type) {
@@ -24,7 +28,7 @@ export const FeedPage = () => {
     return (
         <div className="space-y-4">
             <div className="sticky top-0 z-10 bg-background/95 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <Button className="w-full">Create Post</Button>
+                <PostComposer onSave={handleSavePost} />
             </div>
             {posts.map(renderPost)}
         </div>

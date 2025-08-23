@@ -1,35 +1,24 @@
-import { lazy } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Switch, Route } from 'react-router-dom'
 
 const AppShell = lazy(() => import('./layouts/AppShell'))
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Heatmap = lazy(() => import('./pages/Heatmap'))
-const Laces = lazy(() => import('./pages/Laces'))
-const Dropzones = lazy(() => import('./pages/Dropzones'))
-const ThriftRoutes = lazy(() => import('./pages/ThriftRoutes'))
-const Profile = lazy(() => import('./pages/Profile'))
+const FeedPage = lazy(() => import('./pages/FeedPage'))
+const HeatCheckPage = lazy(() => import('./pages/HeatCheckPage'))
+const DropZonesPage = lazy(() => import('./pages/DropZonesPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const ProtectedRoute = lazy(() => import('./auth/ProtectedRoute'))
 
-const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <ProtectedRoute><AppShell /></ProtectedRoute>,
-    errorElement: <NotFound />,
-    children: [
-      { index: true, element: <Dashboard /> },
-      { path: 'heatmap', element: <Heatmap /> },
-      { path: 'laces', element: <Laces /> },
-      { path: 'dropzones', element: <Dropzones /> },
-      { path: 'thriftroutes', element: <ThriftRoutes /> },
-      { path: 'profile', element: <Profile /> },
-    ],
-  },
-  {
-    path: '/login',
-    element: <LoginPage />,
-  },
-])
+const AppRoutes = () => (
+    <BrowserRouter>
+        <Suspense fallback={<div>Loading...</div>}>
+            <Switch>
+                <Route path="/login" component={LoginPage} />
+                <Route path="/" component={AppShell} />
+            </Switch>
+        </Suspense>
+    </BrowserRouter>
+);
 
-export default router
+export default AppRoutes;
