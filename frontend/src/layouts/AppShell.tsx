@@ -1,19 +1,19 @@
-import { Outlet } from 'react-router-dom'
-import { Topbar } from './_components/Topbar'
-import { Sidebar } from './_components/Sidebar'
+import { Outlet } from 'react-router-dom';
+import { BottomTabNav } from './_components/BottomTabNav';
+import { TopNav } from './_components/TopNav';
 
 const AppShell = () => {
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-4 md:p-8">
+    <div className="flex h-screen flex-col bg-background text-foreground">
+      <TopNav />
+      <main className="flex-1 overflow-y-auto">
+        <div className="container mx-auto max-w-4xl px-4 py-8">
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
+      <BottomTabNav />
     </div>
-  )
-}
+  );
+};
 
-export default AppShell
+export default AppShell;
