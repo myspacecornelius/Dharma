@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from "@/components/ui/Skeleton"
 import { toast } from "sonner"
 
 const ThriftRoutes = () => {
