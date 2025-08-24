@@ -1,6 +1,7 @@
 {
   "name": "dharma",
   "private": true,
+  "type": "module",
   "workspaces": [
     "frontend"
   ],
