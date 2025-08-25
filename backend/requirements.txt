@@ -11,3 +11,4 @@ boto3
 python-jose[cryptography]
 passlib[bcrypt]
 GeoAlchemy2
+Faker

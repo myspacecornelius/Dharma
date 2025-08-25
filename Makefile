@@ -1,6 +1,9 @@
 # Makefile for SNiped Project
 
-.PHONY: build up down logs ps lint test migrate migrate-in db-logs seed grafana doctor reset
+.PHONY: build up down logs ps lint test migrate migrate-in db-logs seed grafana doctor reset env
+
+env:
+	@./scripts/bootstrap_envs.sh
 
 build:
 	docker compose build
@@ -24,20 +27,20 @@ test:
 	docker compose exec api pytest .
 
 migrate:
-	alembic -c backend/alembic.ini upgrade head
+	docker compose exec api alembic -c alembic.ini upgrade head
 
 migrate-in:
-	docker compose run --rm api bash -lc 'alembic -c backend/alembic.ini upgrade head'
+	docker compose exec api alembic -c alembic.ini upgrade head
 
 db-logs:
 	docker compose logs -f postgres
 
 seed:
-	docker compose exec api python seed.py
+	docker compose exec api python -m seed
 
 reset:
-	docker compose down -v
-	docker compose up -d
+	docker compose down -v --remove-orphans
+	docker compose up -d api postgres redis
 	$(MAKE) migrate-in
 	$(MAKE) seed
 
