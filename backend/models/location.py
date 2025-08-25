@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy import Column, String, Index
 from sqlalchemy.dialects.postgresql import UUID
 from geoalchemy2 import Geography
-from database import Base
+from backend.database import Base
 
 class Location(Base):
     __tablename__ = 'locations'

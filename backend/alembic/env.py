@@ -11,7 +11,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from models import Base  # Import your models here
+from backend.models import Base  # Import your models here
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import Column, String, DateTime, Numeric
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
-from .user import Base
+from backend.database import Base
 
 class Release(Base):
     __tablename__ = "releases"

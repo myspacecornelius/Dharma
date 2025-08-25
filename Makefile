@@ -27,16 +27,16 @@ test:
 	docker compose exec api pytest .
 
 migrate:
-	docker compose exec api alembic -c alembic.ini upgrade head
+	docker compose exec api alembic -c backend/alembic.ini upgrade head
 
 migrate-in:
-	docker compose exec api alembic -c alembic.ini upgrade head
+	docker compose exec api alembic -c backend/alembic.ini upgrade head
 
 db-logs:
 	docker compose logs -f postgres
 
 seed:
-	docker compose exec api python -m seed
+	docker compose exec api python -m backend.seed
 
 reset:
 	docker compose down -v --remove-orphans

@@ -2,7 +2,7 @@
 import uuid
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from .user import Base
+from backend.database import Base
 
 class Repost(Base):
     __tablename__ = "reposts"

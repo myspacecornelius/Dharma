@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import Column, String, Enum, ForeignKey, DateTime, Integer
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.sql import func
-from .user import Base
+from backend.database import Base
 
 class Post(Base):
     __tablename__ = "posts"

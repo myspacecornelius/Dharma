@@ -30,7 +30,6 @@ def upgrade() -> None:
     )
     op.create_index('idx_locations_point', 'locations', ['point'], unique=False, postgresql_using='gist')
     op.create_index(op.f('ix_locations_geohash'), 'locations', ['geohash'], unique=False)
-    op.create_index('ix_locations_point', 'locations', ['point'], unique=False, postgresql_using='gist')
     op.create_table('laces_ledger',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),

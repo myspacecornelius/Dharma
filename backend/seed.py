@@ -2,18 +2,18 @@
 import random
 from faker import Faker
 from sqlalchemy.orm import Session
-from core.database import SessionLocal
-from models.user import User
-from models.post import Post
-from models.release import Release
-from models.location import Location
-from models.laces import LacesLedger
-from core.security import get_password_hash
-from core.locations import create_location_and_post
-from core.laces import add_laces_to_user
+from backend.core.database import SessionLocal
+from backend.models.user import User
+from backend.models.post import Post
+from backend.models.release import Release
+from backend.models.location import Location
+from backend.models.laces import LacesLedger
+from backend.core.security import get_password_hash
+from backend.core.locations import create_location_and_post
+from backend.core.laces import add_laces_to_user
 from datetime import datetime, timedelta
-from schemas.post import PostCreate
-from schemas.post import PostCreate
+from backend.schemas.post import PostCreate
+from backend.schemas.post import PostCreate
 
 fake = Faker()
 

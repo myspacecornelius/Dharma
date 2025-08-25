@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import Column, String, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-from .user import Base
+from backend.database import Base
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
