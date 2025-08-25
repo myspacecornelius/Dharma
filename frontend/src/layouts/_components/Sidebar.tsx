@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { Home, Map, Zap, User, Droplets, Route } from 'lucide-react'
 import { useUiStore } from '@/store/ui'
 import { cn } from '@/lib/cn'
+import { Stack } from '@/components/layout/Stack'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: Home },
@@ -18,15 +19,15 @@ export const Sidebar = () => {
   return (
     <aside
       className={cn(
-        'relative hidden h-screen w-64 bg-white dark:bg-gray-800 shadow-md transition-all duration-300 md:block',
+        'relative hidden h-screen w-64 bg-card shadow-md transition-all duration-300 md:block',
         !isSidebarOpen && 'w-20',
       )}
     >
-      <div className="p-4">
+      <Stack className="p-4">
         <h1 className={cn('text-2xl font-bold', !isSidebarOpen && 'text-center')}>
           {isSidebarOpen ? 'Dharma' : 'D'}
         </h1>
-      </div>
+      </Stack>
       <nav className="mt-4">
         <ul>
           {links.map((link) => (
@@ -35,8 +36,8 @@ export const Sidebar = () => {
                 to={link.to}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-4 p-4 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700',
-                    isActive && 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300',
+                    'flex items-center gap-4 rounded-lg p-4 text-foreground hover:bg-muted',
+                    isActive && 'bg-primary/10 text-primary',
                     !isSidebarOpen && 'justify-center',
                   )
                 }
