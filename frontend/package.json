@@ -1,9 +1,10 @@
 {
   "name": "dharma",
+  "type": "module",
   "private": true,
   "packageManager": "npm@10",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "test": "vitest",
     "preview": "vite preview"
@@ -31,6 +32,10 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.4.8",
+    "jsdom": "^24.1.1",
+    "vitest": "^2.0.4",
     "@types/node": "^20.14.12",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",

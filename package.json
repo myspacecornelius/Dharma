@@ -1,0 +1,16 @@
+{
+    "name": "dharma-monorepo",
+    "private": true,
+    "packageManager": "npm@10.0.0",
+    "scripts": {
+        "dev": "turbo run dev",
+        "build": "turbo run build",
+        "test": "turbo run test"
+    },
+    "workspaces": [
+        "frontend"
+    ],
+    "devDependencies": {
+        "turbo": "^2.0.9"
+    }
+}
