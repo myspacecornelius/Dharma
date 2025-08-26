@@ -1,7 +1,6 @@
 
 from sqlalchemy.orm import Session
-from geoalchemy2.elements import WKTElement
-from geoalchemy2.shape import to_shape
+from geoalchemy2 import WKTElement
 from shapely.geometry import Point
 from sqlalchemy import func
 
