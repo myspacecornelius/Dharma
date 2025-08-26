@@ -15,7 +15,7 @@ def create_location_and_post(
     user_id: int,
 ):
     # Create a WKTElement for the location
-    point = WKTElement(f'POINT({post_create.longitude} {post_create.latitude})', srid=4326)
+    point = WKTElement(f'POINT({post_create.geo_tag_long} {post_create.geo_tag_lat})', srid=4326)
 
     # Check for existing location within a small radius to collapse duplicate signals
     # For simplicity, let's define a small radius (e.g., 10 meters) for collapsing
@@ -39,10 +39,13 @@ def create_location_and_post(
 
     # Create the post
     db_post = post_models.Post(
-        content=post_create.content,
+        content_text=post_create.content_text,
         user_id=user_id,
         location_id=location_id,
-        post_type=post_create.post_type,
+        post_type='GENERAL',  # Map from content_type, assuming 'GENERAL' for now
+        media_url=post_create.media_url,
+        tags=post_create.tags,
+        visibility=post_create.visibility
         # boost_score will be handled by the laces module
     )
     db.add(db_post)

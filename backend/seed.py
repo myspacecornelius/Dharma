@@ -10,10 +10,8 @@ from backend.models.location import Location
 from backend.models.laces import LacesLedger
 from backend.core.security import get_password_hash
 from backend.core.locations import create_location_and_post
-from backend.core.laces import add_laces_to_user
-from datetime import datetime, timedelta
-from backend.schemas.post import PostCreate
-from backend.schemas.post import PostCreate
+from datetime import datetime, timedelta, timezone
+from backend.schemas.post import PostCreate, ContentType
 
 fake = Faker()
 
@@ -85,10 +83,11 @@ def seed_data():
     for loc_data in boston_locations:
         for _ in range(random.randint(3, 7)): # 3-7 posts per location
             signal_content = PostCreate(
-                content=f"Spotted some fresh kicks near {loc_data['name']}! #BostonSneakers",
-                latitude=loc_data['latitude'] + random.uniform(-0.001, 0.001), # Slight variation
-                longitude=loc_data['longitude'] + random.uniform(-0.001, 0.001),
-                post_type=random.choice(['text', 'image']),
+                user_id=boston_user.id,
+                content_text=f"Spotted some fresh kicks near {loc_data['name']}! #BostonSneakers",
+                geo_tag_lat=loc_data['latitude'] + random.uniform(-0.001, 0.001), # Slight variation
+                geo_tag_long=loc_data['longitude'] + random.uniform(-0.001, 0.001),
+                content_type=random.choice([ContentType.text, ContentType.image]),
                 tags=random.sample(['#Boston', '#SneakerDrop', '#Heat', '#LocalFinds'], k=random.randint(1, 3))
             )
             create_location_and_post(db, signal_content, boston_user.id)
@@ -97,10 +96,11 @@ def seed_data():
     for loc_data in nyc_locations:
         for _ in range(random.randint(3, 7)): # 3-7 posts per location
             signal_content = PostCreate(
-                content=f"NYC is buzzing with new releases near {loc_data['name']}! #NYCSneakers",
-                latitude=loc_data['latitude'] + random.uniform(-0.001, 0.001),
-                longitude=loc_data['longitude'] + random.uniform(-0.001, 0.001),
-                post_type=random.choice(['text', 'image']),
+                user_id=nyc_user.id,
+                content_text=f"NYC is buzzing with new releases near {loc_data['name']}! #NYCSneakers",
+                geo_tag_lat=loc_data['latitude'] + random.uniform(-0.001, 0.001),
+                geo_tag_long=loc_data['longitude'] + random.uniform(-0.001, 0.001),
+                content_type=random.choice([ContentType.text, ContentType.image]),
                 tags=random.sample(['#NYC', '#SneakerCulture', '#LimitedEdition', '#Streetwear'], k=random.randint(1, 3))
             )
             create_location_and_post(db, signal_content, nyc_user.id)
@@ -109,10 +109,11 @@ def seed_data():
     for _ in range(200):
         random_user = random.choice(users)
         signal_content = PostCreate(
-            content=fake.text(),
-            latitude=float(fake.latitude()),
-            longitude=float(fake.longitude()),
-            post_type=random.choice(['text', 'image', 'video']),
+            user_id=random_user.id,
+            content_text=fake.text(),
+            geo_tag_lat=float(fake.latitude()),
+            geo_tag_long=float(fake.longitude()),
+            content_type=random.choice([ContentType.text, ContentType.image, ContentType.video]),
             tags=random.sample(['#Jordan4', '#Nike', '#Restock', '#tech', '#art'], k=random.randint(1, 4))
         )
         create_location_and_post(db, signal_content, random_user.id)
@@ -122,7 +123,7 @@ def seed_data():
         release = Release(
             sneaker_name=f"{random.choice(['Air Jordan', 'Yeezy', 'Nike Dunk'])} {random.randint(1, 15)}",
             brand=random.choice(["Nike", "Adidas"]),
-            release_date=datetime.utcnow() + timedelta(days=random.randint(1, 90)),
+            release_date=datetime.now(timezone.utc) + timedelta(days=random.randint(1, 90)),
             retail_price=random.randint(100, 300),
             store_links={"store1": fake.url(), "store2": fake.url()}
         )
