@@ -1,15 +1,114 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-alembic
-python-dotenv
-celery
-redis
-prometheus-fastapi-instrumentator
-boto3
-python-jose[cryptography]
-passlib[bcrypt]
-GeoAlchemy2
-Faker
-shapely
+<file name=Dockerfile path=/Users/davidnichols/Desktop/Dharma -- latest/Dharma/backend>
+# syntax=docker/dockerfile:1
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./backend ./backend
+COPY alembic.ini .
+COPY alembic ./alembic
+
+# --- BEGIN: locked entrypoint for safe migrations ---
+# Optional toggle: let API run migrations once per boot when RUN_MIGRATIONS=true
+ENV RUN_MIGRATIONS=false
+
+# Write a small entrypoint with a file lock around alembic
+RUN printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'set -euo pipefail' \
+  '' \
+  'LOCKFILE="/tmp/migrate.lock"' \
+  'run_migrations() {' \
+  '  echo "[entrypoint] Running alembic upgrade head (guarded by flock)"' \
+  '  exec 9>"${LOCKFILE}"' \
+  '  if flock -n 9; then' \
+  '    alembic upgrade head || {' \
+  '      echo "[entrypoint] Alembic failed" >&2; exit 1; }' \
+  '  else' \
+  '    echo "[entrypoint] Another process holds migration lock; skipping"' \
+  '  fi' \
+  '}' \
+  '' \
+  'if [ "${RUN_MIGRATIONS}" = "true" ]; then' \
+  '  run_migrations' \
+  'fi' \
+  '' \
+  '# Finally, start uvicorn' \
+  'exec uvicorn backend.main:app --host 0.0.0.0 --port 8000' \
+  > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+# --- END: locked entrypoint for safe migrations ---
+</file>
+
+<file name=docker-compose.yml path=/Users/davidnichols/Desktop/Dharma -- latest/Dharma>
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dharma
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 50
+
+  migrate:
+    build:
+      context: ./backend
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: alembic upgrade head
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      - RUN_MIGRATIONS=false
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
+</file>
+
+<file name=Makefile path=/Users/davidnichols/Desktop/Dharma -- latest/Dharma>
+DOCKER := $(shell command -v docker)
+ifndef DOCKER
+$(error docker not found on PATH. Add: export PATH="/Applications/Docker.app/Contents/Resources/bin:$$PATH")
+endif
+
+.PHONY: dev down logs rebuild
+
+dev:
+	$(DOCKER) compose up -d --build db
+	$(DOCKER) compose up --build migrate
+	$(DOCKER) compose up -d --build api
+
+logs:
+	$(DOCKER) compose logs -f api migrate db
+
+rebuild:
+	$(DOCKER) compose build --no-cache api migrate
+
+down:
+	$(DOCKER) compose down
+</file>
