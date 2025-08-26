@@ -1,54 +1,24 @@
-# Makefile for SNiped Project
+# Makefile for Dharma Development
 
-.PHONY: build up down logs ps lint test migrate migrate-in db-logs seed grafana doctor reset env
+.PHONY: setup dev test migrate down
 
-env:
+setup:
+	@echo "Setting up environment files..."
+	@cp .env.example .env
 	@./scripts/bootstrap_envs.sh
 
-build:
-	docker compose build
-
-up:
-	docker compose up -d
-
-down:
-	docker compose down -v
-
-logs:
-	docker compose logs -f api worker
-
-ps:
-	docker compose ps
-
-lint:
-	docker compose exec api flake8 .
+dev:
+	@echo "Starting services..."
+	@docker-compose up -d --build
 
 test:
-	docker compose exec api pytest .
+	@echo "Running frontend tests..."
+	@npm run test --workspace=frontend
 
 migrate:
-	docker compose exec api alembic -c backend/alembic.ini upgrade head
+	@echo "Running database migrations..."
+	@docker-compose exec api alembic upgrade head
 
-migrate-in:
-	docker compose exec api alembic -c backend/alembic.ini upgrade head
-
-db-logs:
-	docker compose logs -f postgres
-
-seed:
-	docker compose exec api python -m backend.seed
-
-reset:
-	docker compose down -v --remove-orphans
-	docker compose up -d api postgres redis
-	$(MAKE) migrate-in
-	$(MAKE) seed
-
-grafana:
-	@echo "Grafana is running at http://localhost:3000"
-	@echo "Default login: admin / admin"
-
-doctor:
-	@./scripts/doctor.sh
-
-all: build up
+down:
+	@echo "Stopping and removing containers..."
+	@docker-compose down

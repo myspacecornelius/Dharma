@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "test": "vitest",
+    "test": "vitest --config ./vitest.config.ts",
     "preview": "vite preview"
   },
   "dependencies": {

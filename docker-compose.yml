@@ -40,6 +40,11 @@ services:
     environment:
       - PYTHONPATH=/app
     command: /app/backend/start.sh
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy

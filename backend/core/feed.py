@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm import Session
 from geoalchemy2.elements import WKTElement
 from sqlalchemy import func, desc
@@ -22,13 +21,17 @@ def get_hyperlocal_feed(
 
     # Query for posts within the specified radius of the user's location
     # Order by boost_score (descending) and then by creation_date (descending)
-    posts = db.query(post_models.Post)
-    .join(location_models.Location)
-    .filter(
-        func.ST_DWithin(location_models.Location.geopoint, user_point, radius_meters)
+    posts = (
+        db.query(post_models.Post)
+        .join(location_models.Location)
+        .filter(
+            func.ST_DWithin(
+                location_models.Location.geopoint, user_point, radius_meters
+            )
+        )
+        .order_by(desc(post_models.Post.boost_score), desc(post_models.Post.created_date))
+        .limit(limit)
+        .all()
     )
-    .order_by(desc(post_models.Post.boost_score), desc(post_models.Post.created_date))
-    .limit(limit)
-    .all()
 
     return posts

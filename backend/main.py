@@ -14,6 +14,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Health check endpoint
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 # Include API router
 app.include_router(api_router)
 app.include_router(hyperlocal.router, prefix="/v1", tags=["hyperlocal"])
