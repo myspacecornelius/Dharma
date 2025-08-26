@@ -1,4 +1,6 @@
 
+from typing import Optional
+
 from pydantic import BaseModel, UUID4
 
 class LikeBase(BaseModel):
@@ -17,7 +19,7 @@ class Like(LikeBase):
 class SaveBase(BaseModel):
     user_id: UUID4
     post_id: UUID4
-    board_id: UUID4 | None = None
+    board_id: Optional[UUID4] = None
 
 class SaveCreate(SaveBase):
     pass
@@ -40,4 +42,3 @@ class Repost(RepostBase):
 
     class Config:
         orm_mode = True
-
