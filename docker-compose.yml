@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgis/postgis:15-3.4
@@ -5,11 +7,13 @@ services:
       - "5432:5432"
     env_file:
       - .env.example
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
     networks:
       - appnet
 
@@ -20,10 +24,26 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - appnet
+
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env.example
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: alembic upgrade head
+    restart: "no"
     networks:
       - appnet
 
@@ -39,15 +59,16 @@ services:
       - .env.example
     environment:
       - PYTHONPATH=/app
-    command: /app/backend/start.sh
+      - RUN_MIGRATIONS=false
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     networks:
@@ -59,7 +80,9 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./worker:/app:cached
-      - ./backend:/app/backend:cached # For shared models/code
+      - ./backend:/app/backend:cached
+    env_file:
+      - .env.example
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
@@ -76,10 +99,12 @@ services:
   beat:
     build:
       context: ./worker
-      dockerfile: Dockerfile
+    dockerfile: Dockerfile
     volumes:
       - ./worker:/app:cached
-      - ./backend:/app/backend:cached # For shared models/code
+      - ./backend:/app/backend:cached
+    env_file:
+      - .env.example
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
@@ -113,8 +138,8 @@ services:
       - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
     networks:
       - appnet
 
@@ -134,7 +159,6 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
-
 
 networks:
   appnet:
