@@ -6,7 +6,7 @@ services:
     ports:
       - "5432:5432"
     env_file:
-      - .env
+      - .env.example
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -33,10 +33,10 @@ services:
 
   migrate:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     env_file:
-      - .env
+      - .env.example
     environment:
       - DATABASE_URL=${DATABASE_URL}
     depends_on:
@@ -49,14 +49,14 @@ services:
 
   api:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+    dockerfile: backend/Dockerfile
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "${API_PORT}:8000"
     volumes:
       - ./backend:/app/backend:cached
     env_file:
-      - .env
+      - .env.example
     environment:
       - PYTHONPATH=/app
       - RUN_MIGRATIONS=false
@@ -82,15 +82,15 @@ services:
       - ./worker:/app:cached
       - ./backend:/app/backend:cached
     env_file:
-      - .env
+      - .env.example
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - ENVIRONMENT=${ENVIRONMENT}
     command: celery -A tasks.celery worker --loglevel=info
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -104,15 +104,15 @@ services:
       - ./worker:/app:cached
       - ./backend:/app/backend:cached
     env_file:
-      - .env
+      - .env.example
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - ENVIRONMENT=${ENVIRONMENT}
     command: celery -A tasks.celery beat --loglevel=info
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -123,7 +123,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      - "${FRONTEND_PORT}:5173"
     volumes:
       - ./frontend:/app:cached
       - /app/node_modules
