@@ -28,18 +28,18 @@ CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--re
 # --- Safe entrypoint with optional migration lock ---
 ENV RUN_MIGRATIONS=false
 RUN printf '%s\n' \
-'#!/usr/bin/env bash' \
-'set -euo pipefail' \
-'LOCKFILE="/tmp/migrate.lock"' \
-'if [ "${RUN_MIGRATIONS}" = "true" ]; then' \
-'  exec 9>"${LOCKFILE}"' \
-'  if flock -n 9; then' \
-'    echo "[entrypoint] alembic upgrade head (locked)";' \
-'    alembic upgrade head;' \
-'  else' \
-'    echo "[entrypoint] migration lock held; skipping";' \
-'  fi' \
-'fi' \
-'exec uvicorn backend.main:app --host 0.0.0.0 --port 8000' \
-> /entrypoint.sh && chmod +x /entrypoint.sh
+    '#!/usr/bin/env bash' \
+    'set -euo pipefail' \
+    'LOCKFILE="/tmp/migrate.lock"' \
+    'if [ "${RUN_MIGRATIONS}" = "true" ]; then' \
+    '  exec 9>"${LOCKFILE}"' \
+    '  if flock -n 9; then' \
+    '    echo "[entrypoint] alembic upgrade head (locked)";' \
+    '    alembic upgrade head;' \
+    '  else' \
+    '    echo "[entrypoint] migration lock held; skipping";' \
+    '  fi' \
+    'fi' \
+    'exec uvicorn backend.main:app --host 0.0.0.0 --port 8000' \
+    > /entrypoint.sh && chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
