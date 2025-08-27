@@ -1,5 +1,5 @@
 import { useTheme } from '@/components/ThemeProvider';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Flame, Search, Sparkles } from 'lucide-react';
 
 export const TopNav = () => {
