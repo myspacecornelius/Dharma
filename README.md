@@ -9,29 +9,30 @@ Dharma
 Dharma is an in-development platform for the sneakerhead community — built to go beyond bots.
 It’s designed as the backbone of a next-generation sneakerhead network: combining the speed of automated checkout with the culture of cook groups, hyperlocal feeds, and tokenized participation.
 
-
 The project combines robust tooling (checkout orchestration, anti-bot hygiene, adapters for multiple sites) with a roadmap for community governance and tokenized incentives, enabling users to participate in and benefit from the ecosystem they help power.
 
 ⸻
 
 ## 🚀 Project Overview
+
 * **Core Purpose**: Automate checkout and carting flows with extensibility across retailers, while providing a community-driven, privacy-conscious backbone.
 * **Vision**: Move beyond isolated automation scripts toward a production-ready framework that supports decentralized community participation, token incentives, and a plug-and-play adapter architecture.
 * **Key Concepts**:
-    * Checkout orchestration with retries, logging, and error handling
-    * Multi-SKU carting and simulation harnesses
-    * Adapter registry for new site integrations
-    * Tokenized community environment for contribution and governance
+  * Checkout orchestration with retries, logging, and error handling
+  * Multi-SKU carting and simulation harnesses
+  * Adapter registry for new site integrations
+  * Tokenized community environment for contribution and governance
 
 ⸻
 
 ## 🛠️ Technical Overview
 
 Dharma is structured around modular services and tools:
+
 * `services/`: Contains core checkout orchestration, adapters, and APIs.
-    * `checkout/` – orchestrates carting, retries, error handling
-    * `adapters/` – site-specific integrations for automated checkout
-    * `community/` – backend for decentralized/tokenized participation (in-progress scaffolding)
+  * `checkout/` – orchestrates carting, retries, error handling
+  * `adapters/` – site-specific integrations for automated checkout
+  * `community/` – backend for decentralized/tokenized participation (in-progress scaffolding)
 * `tools/`: Utilities for CLI operations, testing harnesses, and adapter debugging.
 * `tests/`: Unit and integration test suites (with TODOs for adapter simulation tests).
 * `workflows/`: CI/CD, health checks, and resilience scaffolds for automated deployment.
@@ -39,16 +40,18 @@ Dharma is structured around modular services and tools:
 ⸻
 
 ## ⚙️ Tech Stack
+
 * **Languages**: Python (services, tools, adapters), JavaScript/TypeScript (front-end + future dashboard)
 * **Frameworks / Libraries**:
-    * FastAPI / Flask (backend services)
-    * Playwright / Puppeteer (browser automation, checkout simulation)
-    * Pytest (testing suite)
+  * FastAPI / Flask (backend services)
+  * Playwright / Puppeteer (browser automation, checkout simulation)
+  * Pytest (testing suite)
 * **Infrastructure**: Dockerized services, GitHub Actions workflows
 
 ⸻
 
 ## 📋 Requirements
+
 * Python 3.11+
 * Node.js 20+ (for future front-end scaffolds & tooling)
 * Docker (recommended for containerized runs)
@@ -61,9 +64,10 @@ Dharma is structured around modular services and tools:
 This repository is configured for [GitHub Codespaces](https://github.com/features/codespaces) to provide a ready-to-use development environment.
 
 To get started:
-1.  Click the "Code" button on the repository's page and select "Open with Codespaces".
-2.  Once the Codespace is created, it will automatically install all dependencies.
-3.  When the setup is complete, run the services with one command:
+
+1. Click the "Code" button on the repository's page and select "Open with Codespaces".
+2. Once the Codespace is created, it will automatically install all dependencies.
+3. When the setup is complete, run the services with one command:
 
 ```bash
 make up
@@ -122,7 +126,7 @@ npm install
 Run services locally:
 
 ```bash
-uvicorn services.api.main:app --reload
+uvicorn backend.main:app --reload
 ```
 
 ⸻
@@ -153,7 +157,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
 
 ## 💻 Key Commands & Usage
 
@@ -186,17 +189,20 @@ docker compose up --build
 ## 🧩 Development Guide
 
 ### Adding a New Adapter
+
 1. Create a new file under `services/checkout/adapters/`.
 2. Implement required methods (`add_to_cart`, `checkout`, `handle_captcha`, etc.).
 3. Register the adapter in the adapter registry (`services/checkout/registry.py`).
 4. Write simulation + test cases in `tests/adapters/`.
 
 ### Resilience Features
+
 * Built-in retries with exponential backoff
 * Configurable timeouts
 * Logging hooks for CI/CD monitoring
 
 ### Anti-Bot Hygiene
+
 * Human-like browser flows (Playwright scaffolding)
 * Proxy rotation and rate limiting
 * TODO: Machine-learning-based request pattern randomization
@@ -206,6 +212,7 @@ docker compose up --build
 ## 🌐 Community & Tokenization Roadmap
 
 The Dharma roadmap includes evolving into a tokenized community environment:
+
 * **Contribution Rewards**: Developers earn tokens for new adapters, bug fixes, and infrastructure improvements.
 * **Governance**: Token-holders influence feature priorities and community rules.
 * **Marketplace**: Potential for decentralized exchange of adapters, tools, or community services.
