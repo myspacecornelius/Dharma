@@ -1,6 +1,11 @@
 # Makefile for Dharma Development
 
-.PHONY: setup dev test migrate down
+.PHONY: doctor setup dev test migrate down logs
+
+doctor:
+	@test -f .env || (echo "Missing .env. Run: cp .env.example .env && edit secrets"; exit 1)
+	@docker info >/dev/null
+	@echo "Doctor OK"
 
 setup:
 	@echo "Setting up environment files..."
@@ -22,3 +27,6 @@ migrate:
 down:
 	@echo "Stopping and removing containers..."
 	@docker-compose down
+
+logs:
+	@docker-compose logs -f --tail=200

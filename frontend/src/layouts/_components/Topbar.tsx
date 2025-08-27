@@ -1,11 +1,11 @@
-import { Menu, Search } from 'lucide-react'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useUiStore } from '@/store/ui'
 import { Stack } from '@/components/layout/Stack'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/Button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { useUiStore } from '@/store/ui'
+import { Menu, Search } from 'lucide-react'
+import WalletDrawer from '@/components/hyperlocal/WalletDrawer'
 
 export const Topbar = () => {
   const { toggleSidebar } = useUiStore()
@@ -28,6 +28,7 @@ export const Topbar = () => {
           </div>
         </form>
       </Stack>
+      <WalletDrawer />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="icon" className="rounded-full">
