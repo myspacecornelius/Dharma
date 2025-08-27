@@ -158,6 +158,16 @@ npm install
 npm run dev
 ```
 
+## UI Features
+
+The current UI is built with React, Vite, and Tailwind CSS. It includes the following features:
+
+*   **Hyperlocal Feed**: A feed of sneaker drops and other community activity.
+*   **Quest Board**: A list of tasks that users can complete to earn rewards.
+*   **Drops Hub**: A calendar of upcoming sneaker drops and a "War Room" for real-time chat and status updates.
+*   **Map**: A map view of stores and events. **Note**: This is currently a placeholder. A map library like `react-leaflet` needs to be installed and configured.
+*   **Wallet**: A slide-in drawer that displays the user's coin balance, boosts, and bounties.
+
 ## 💻 Key Commands & Usage
 
 Run checkout flow with a given adapter:

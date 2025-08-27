@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from '@/components/ui/input'
 import { useUiStore } from '@/store/ui'
 import { Menu, Search } from 'lucide-react'
+import WalletDrawer from '@/components/hyperlocal/WalletDrawer'
 
 export const Topbar = () => {
   const { toggleSidebar } = useUiStore()
@@ -27,6 +28,7 @@ export const Topbar = () => {
           </div>
         </form>
       </Stack>
+      <WalletDrawer />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="icon" className="rounded-full">

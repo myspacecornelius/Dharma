@@ -1,16 +1,19 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Map, Zap, User, Droplets, Route } from 'lucide-react'
+import { Home, Map, Zap, User, Droplets, Route, Rss, Calendar, ClipboardList } from 'lucide-react'
 import { useUiStore } from '@/store/ui'
 import { cn } from '@/lib/cn'
 import { Stack } from '@/components/layout/Stack'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: Home },
-  { to: '/heatmap', label: 'HeatMap', icon: Map },
   { to: '/laces', label: 'LACES', icon: Zap },
   { to: '/dropzones', label: 'DropZones', icon: Droplets },
   { to: '/thriftroutes', label: 'ThriftRoutes', icon: Route },
   { to: '/profile', label: 'Profile', icon: User },
+  { to: '/feed', label: 'Feed', icon: Rss },
+  { to: '/map', label: 'Map', icon: Map },
+  { to: '/drops', label: 'Drops', icon: Calendar },
+  { to: '/quests', label: 'Quests', icon: ClipboardList },
 ]
 
 export const Sidebar = () => {
@@ -34,6 +37,7 @@ export const Sidebar = () => {
             <li key={link.to}>
               <NavLink
                 to={link.to}
+                end={link.to === '/'}
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-4 rounded-lg p-4 text-foreground hover:bg-muted',
