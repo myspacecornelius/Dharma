@@ -1,7 +1,7 @@
-version: "3.9"
-
+cat > docker-compose.yml <<'YAML'
 services:
   postgres:
+    platform: linux/amd64
     image: postgis/postgis:15-3.4
     ports:
       - "5432:5432"
@@ -163,3 +163,4 @@ volumes:
 networks:
   appnet:
     driver: bridge
+YAML
