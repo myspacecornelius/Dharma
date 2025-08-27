@@ -13,6 +13,13 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const ProtectedRoute = lazy(() => import('./auth/ProtectedRoute'));
 
+// New Pages for Hyperlocal Social UI
+const Feed = lazy(() => import('./pages/Feed'));
+const Map = lazy(() => import('./pages/Map'));
+const Drops = lazy(() => import('./pages/Drops'));
+const Quests = lazy(() => import('./pages/Quests'));
+
+
 // New Components
 import ItemsPage from './features/items/ItemsPage';
 import DataAppShell from './layouts/DataAppShell';
@@ -42,6 +49,10 @@ const router = createBrowserRouter([
       { path: 'dropzones', element: <Dropzones /> },
       { path: 'thriftroutes', element: <ThriftRoutes /> },
       { path: 'profile', element: <Profile /> },
+      { path: 'feed', element: <Feed /> },
+      { path: 'map', element: <Map /> },
+      { path: 'drops', element: <Drops /> },
+      { path: 'quests', element: <Quests /> },
     ],
   },
   {

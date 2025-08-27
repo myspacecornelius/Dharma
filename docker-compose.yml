@@ -1,3 +1,4 @@
+# Copy .env.example -> .env before running. .env is required for runtime.
 version: "3.9"
 
 services:
@@ -6,7 +7,7 @@ services:
     ports:
       - "5432:5432"
     env_file:
-      - .env.example
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -36,7 +37,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     env_file:
-      - .env.example
+      - .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
     depends_on:
@@ -56,7 +57,7 @@ services:
     volumes:
       - ./backend:/app/backend:cached
     env_file:
-      - .env.example
+      - .env
     environment:
       - PYTHONPATH=/app
       - RUN_MIGRATIONS=false
@@ -82,7 +83,7 @@ services:
       - ./worker:/app:cached
       - ./backend:/app/backend:cached
     env_file:
-      - .env.example
+      - .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
@@ -104,7 +105,7 @@ services:
       - ./worker:/app:cached
       - ./backend:/app/backend:cached
     env_file:
-      - .env.example
+      - .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
