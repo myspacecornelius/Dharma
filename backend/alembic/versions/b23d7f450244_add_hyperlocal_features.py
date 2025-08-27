@@ -28,7 +28,7 @@ def upgrade() -> None:
     sa.Column('geohash', sa.String(length=12), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_locations_point', 'locations', ['point'], unique=False, postgresql_using='gist')
+    op.execute("CREATE INDEX IF NOT EXISTS idx_locations_point ON locations USING GIST (point)")
     op.create_index(op.f('ix_locations_geohash'), 'locations', ['geohash'], unique=False)
     op.create_table('laces_ledger',
     sa.Column('id', sa.UUID(), nullable=False),
