@@ -39,7 +39,7 @@ def get_url():
     return os.getenv(
         "DATABASE_URL",
         f"postgresql://{os.getenv('POSTGRES_USER', 'postgres')}:"
-        f"{os.getenv('POSTGRES_PASSWORD', 'postgres')}@"
+        f"{os.getenv('postgres_PASSWORD', 'post')}@"
         f"{os.getenv('POSTGRES_HOST', 'localhost')}:"
         f"{os.getenv('POSTGRES_PORT', '5432')}/"
         f"{os.getenv('POSTGRES_DB', 'sniped')}"

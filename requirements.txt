@@ -1,6 +1,6 @@
 # PostgreSQL
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
+postgres_PASSWORD=post
 POSTGRES_DB=DHARMA
 DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/DHARMA
 DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/snpd

@@ -19,7 +19,7 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
+          postgres_PASSWORD: test
           POSTGRES_DB: sniped_test
         options: >-
           --health-cmd pg_isready
@@ -178,7 +178,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          post: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Extract metadata
         id: meta

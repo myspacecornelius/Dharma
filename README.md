@@ -138,7 +138,7 @@ This project requires environment variables to configure database, cache, and AP
 | Variable              | Description                                 | Consumed By            |
 | --------------------- | ------------------------------------------- | ---------------------- |
 | `POSTGRES_USER`       | Database username                           | API, Worker (DB)       |
-| `POSTGRES_PASSWORD`   | Database password                           | API, Worker (DB)       |
+| `postgres_PASSWORD`   | Database post                           | API, Worker (DB)       |
 | `POSTGRES_DB`         | Database name                               | API, Worker (DB)       |
 | `DATABASE_URL`        | Full SQLAlchemy URL                         | API (FastAPI), Worker  |
 | `REDIS_URL`           | Redis connection string                     | API, Worker (queue)    |
@@ -162,11 +162,11 @@ npm run dev
 
 The current UI is built with React, Vite, and Tailwind CSS. It includes the following features:
 
-*   **Hyperlocal Feed**: A feed of sneaker drops and other community activity.
-*   **Quest Board**: A list of tasks that users can complete to earn rewards.
-*   **Drops Hub**: A calendar of upcoming sneaker drops and a "War Room" for real-time chat and status updates.
-*   **Map**: A map view of stores and events. **Note**: This is currently a placeholder. A map library like `react-leaflet` needs to be installed and configured.
-*   **Wallet**: A slide-in drawer that displays the user's coin balance, boosts, and bounties.
+* **Hyperlocal Feed**: A feed of sneaker drops and other community activity.
+* **Quest Board**: A list of tasks that users can complete to earn rewards.
+* **Drops Hub**: A calendar of upcoming sneaker drops and a "War Room" for real-time chat and status updates.
+* **Map**: A map view of stores and events. **Note**: This is currently a placeholder. A map library like `react-leaflet` needs to be installed and configured.
+* **Wallet**: A slide-in drawer that displays the user's coin balance, boosts, and bounties.
 
 ## 💻 Key Commands & Usage
 
