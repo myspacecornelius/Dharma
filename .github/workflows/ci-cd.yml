@@ -157,7 +157,7 @@ jobs:
   # Build Docker Images
   build:
     name: Build Docker Images
-    needs: [lint, test-backend, test-frontend, security]
+    needs: [test-and-lint, test-frontend, security]
     runs-on: ubuntu-latest
     permissions:
       contents: read
