@@ -1,6 +1,6 @@
 # Makefile for Dharma Development
 
-.PHONY: doctor setup dev test migrate down logs
+.PHONY: doctor setup build dev test migrate down logs
 
 doctor:
 	@test -f .env || (echo "Missing .env. Run: cp .env.example .env && edit secrets"; exit 1)
@@ -12,9 +12,13 @@ setup:
 	@cp .env.example .env
 	@./scripts/bootstrap_envs.sh
 
+build:
+	@echo "Building services..."
+	@docker compose build --no-cache
+
 dev:
 	@echo "Starting services..."
-	@docker-compose up -d --build
+	@docker compose up -d
 
 test:
 	@echo "Running frontend tests..."
@@ -22,11 +26,11 @@ test:
 
 migrate:
 	@echo "Running database migrations..."
-	@docker-compose exec api alembic upgrade head
+	@docker compose exec api alembic upgrade head
 
 down:
 	@echo "Stopping and removing containers..."
-	@docker-compose down
+	@docker compose down
 
 logs:
-	@docker-compose logs -f --tail=200
+	@docker compose logs -f --tail=200

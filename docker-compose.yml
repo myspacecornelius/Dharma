@@ -1,20 +1,21 @@
 # Copy .env.example -> .env before running. .env is required for runtime.
-version: "3.9"
+
 
 services:
   postgres:
-    image: postgis/postgis:15-3.4
+    image: nickblah/postgis:12-bullseye-postgis-3
     ports:
       - "5432:5432"
     env_file:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/create-extensions.sh:/docker-entrypoint-initdb.d/create-extensions.sh
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
     networks:
       - appnet
 
@@ -44,6 +45,7 @@ services:
       postgres:
         condition: service_healthy
     command: alembic upgrade head
+    working_dir: /app/backend
     restart: "no"
     networks:
       - appnet

@@ -31,6 +31,7 @@ const SimpleDashboard: React.FC = () => (
   </div>
 );
 
+import { Feed } from './components/Feed';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -43,13 +44,12 @@ const router = createBrowserRouter([
     ),
     errorElement: <NotFound />,
     children: [
-      { index: true, element: <Dashboard /> },
+      { index: true, element: <Feed /> },
       { path: 'heatmap', element: <Heatmap /> },
       { path: 'laces', element: <Laces /> },
       { path: 'dropzones', element: <Dropzones /> },
       { path: 'thriftroutes', element: <ThriftRoutes /> },
       { path: 'profile', element: <Profile /> },
-      { path: 'feed', element: <Feed /> },
       { path: 'map', element: <Map /> },
       { path: 'drops', element: <Drops /> },
       { path: 'quests', element: <Quests /> },

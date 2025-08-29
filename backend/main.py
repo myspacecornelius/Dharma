@@ -2,8 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api import router as api_router
 from .api import hyperlocal
+from .database import check_db_connection, engine
 
 app = FastAPI()
+
+@app.on_event("startup")
+def startup_event():
+    check_db_connection()
+
 
 # CORS middleware
 app.add_middleware(
