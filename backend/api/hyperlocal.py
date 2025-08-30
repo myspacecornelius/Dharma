@@ -11,11 +11,11 @@ from backend.models import user as user_models
 
 router = APIRouter()
 
-@router.post("/signals", response_model=post_schemas.PostCreateResponse)
+@router.post("/signals", response_model=post_schemas.Post)
 def create_signal(
     signal: post_schemas.PostCreate,
     db: Session = Depends(get_db),
-    current_user: user_models.User = Depends(security.get_current_active_user),
+    current_user: user_models.User = Depends(security.get_current_user),
 ):
     """
     Create a new hyperlocal signal (post).
@@ -29,7 +29,7 @@ def get_local_feed(
     longitude: float,
     radius: float = 1.0, # in kilometers
     db: Session = Depends(get_db),
-    current_user: user_models.User = Depends(security.get_current_active_user),
+    current_user: user_models.User = Depends(security.get_current_user),
 ):
     """
     Fetch hyperlocal feed based on user's location.
@@ -41,7 +41,7 @@ def get_local_feed(
 def boost_signal(
     post_id: int,
     db: Session = Depends(get_db),
-    current_user: user_models.User = Depends(security.get_current_active_user),
+    current_user: user_models.User = Depends(security.get_current_user),
 ):
     """
     Boost a signal using Laces.

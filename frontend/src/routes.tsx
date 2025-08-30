@@ -31,7 +31,6 @@ const SimpleDashboard: React.FC = () => (
   </div>
 );
 
-import { Feed } from './components/Feed';
 const router = createBrowserRouter([
   {
     path: '/',

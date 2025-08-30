@@ -26,7 +26,7 @@ test:
 
 migrate:
 	@echo "Running database migrations..."
-	@docker compose exec api alembic upgrade head
+	@docker compose exec -w /app/backend api alembic upgrade head
 
 down:
 	@echo "Stopping and removing containers..."

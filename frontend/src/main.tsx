@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
@@ -17,7 +16,15 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
         <Toaster position="top-right" richColors />
-        <ReactQueryDevtools initialIsOpen={false} />
+        {import.meta.env.DEV && (
+          <React.Suspense fallback={null}>
+            {React.createElement(
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              require('@tanstack/react-query-devtools').ReactQueryDevtools,
+              { initialIsOpen: false }
+            )}
+          </React.Suspense>
+        )}
       </QueryClientProvider>
     </ThemeProvider>
   </React.StrictMode>

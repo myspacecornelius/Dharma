@@ -77,7 +77,7 @@ class ProxyProvider(ABC):
 class BrightDataProvider(ProxyProvider):
     """Bright Data (Luminati) proxy provider"""
     
-    def __init__(self, customer_id: str, password: str, zone: str):
+    def __init__(self, customer_id: str, post: str, zone: str):
         self.customer_id = customer_id
         self.password = password
         self.zone = zone
@@ -96,7 +96,7 @@ class BrightDataProvider(ProxyProvider):
                 provider="bright_data",
                 proxy_type="isp",
                 username=f"{self.customer_id}-zone-{self.zone}-session-{session_id}",
-                password=self.password,
+                passwored=self.password,
                 sticky_session_id=session_id,
                 location="us"
             )
@@ -114,9 +114,9 @@ class BrightDataProvider(ProxyProvider):
 class OxylabsProvider(ProxyProvider):
     """Oxylabs proxy provider"""
     
-    def __init__(self, username: str, password: str):
+    def __init__(self, username: str, post: str):
         self.username = username
-        self.password = password
+        self.post = post
         self.base_url = "http://pr.oxylabs.io:7777"
         
     async def get_proxies(self, count: int = 10) -> List[Proxy]:
@@ -183,17 +183,17 @@ class ProxyManager:
         """Initialize proxy providers from config"""
         # In production, load from environment variables
         # Example initialization:
-        if all(key in os.environ for key in ['BRIGHT_DATA_CUSTOMER', 'BRIGHT_DATA_PASSWORD', 'BRIGHT_DATA_ZONE']):
+        if all(key in os.environ for key in ['BRIGHT_DATA_CUSTOMER', 'BRIGHT_DATA_post', 'BRIGHT_DATA_ZONE']):
             self.providers['bright_data'] = BrightDataProvider(
                 customer_id=os.environ['BRIGHT_DATA_CUSTOMER'],
-                password=os.environ['BRIGHT_DATA_PASSWORD'],
+                post=os.environ['BRIGHT_DATA_post'],
                 zone=os.environ['BRIGHT_DATA_ZONE']
             )
         
-        if all(key in os.environ for key in ['OXYLABS_USERNAME', 'OXYLABS_PASSWORD']):
+        if all(key in os.environ for key in ['OXYLABS_USERNAME', 'OXYLABS_post']):
             self.providers['oxylabs'] = OxylabsProvider(
                 username=os.environ['OXYLABS_USERNAME'],
-                password=os.environ['OXYLABS_PASSWORD']
+                post=os.environ['OXYLABS_post']
             )
     
     async def get_proxy(self, requirements: Optional[Dict[str, Any]] = None) -> Optional[Proxy]:

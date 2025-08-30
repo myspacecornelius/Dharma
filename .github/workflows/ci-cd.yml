@@ -178,7 +178,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          post: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Extract metadata
         id: meta
@@ -209,15 +209,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
-    environment:
-      name: staging
+    environment: staging
     
     steps:
       - uses: actions/checkout@v3
       
       - name: Deploy to Kubernetes
         env:
-          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG_STAGING }}
+          KUBE_CONFIG: ""
         run: |
           echo "$KUBE_CONFIG" | base64 -d > kubeconfig
           export KUBECONFIG=kubeconfig
@@ -247,8 +246,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
+    environment: production
     
     steps:
       - uses: actions/checkout@v3
@@ -290,5 +288,6 @@ jobs:
         with:
           status: ${{ job.status }}
           text: 'Production deployment completed for Sniped v${{ github.run_number }}'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
         if: always()
