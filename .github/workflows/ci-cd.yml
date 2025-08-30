@@ -18,9 +18,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: test
-          postgres_PASSWORD: test
-          POSTGRES_DB: sniped_test
+          POSTGRES_USER: dharma_user
+          POSTGRES_PASSWORD: post
+          POSTGRES_DB: dharma_test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -73,13 +73,13 @@ jobs:
 
       - name: Run migrations
         env:
-          DATABASE_URL: postgresql+psycopg2://test:test@localhost:5432/sniped_test
+          DATABASE_URL: postgresql+psycopg2://dharma_user:post@localhost:5432/dharma_test
           REDIS_URL: redis://localhost:6379
         run: alembic -c backend/alembic.ini upgrade head
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql+psycopg2://test:test@localhost:5432/sniped_test
+          DATABASE_URL: postgresql+psycopg2://dharma_user:post@localhost:5432/dharma_test
           REDIS_URL: redis://localhost:6379
           CI: "true" # To skip migrations in test fixture
         run: pytest -q

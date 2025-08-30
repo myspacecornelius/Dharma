@@ -5,15 +5,15 @@ from typing import List
 
 from backend.core.database import get_db
 from backend.core import security, locations, laces, feed
-from backend.schemas import post as post_schemas
+from backend.schemas.post import Post, PostCreate, PostResponse
 from backend.schemas import user as user_schemas
 from backend.models import user as user_models
 
 router = APIRouter()
 
-@router.post("/signals", response_model=post_schemas.Post)
+@router.post("/signals", response_model=Post)
 def create_signal(
-    signal: post_schemas.PostCreate,
+    signal: PostCreate,
     db: Session = Depends(get_db),
     current_user: user_models.User = Depends(security.get_current_user),
 ):
@@ -23,7 +23,7 @@ def create_signal(
     db_post = locations.create_location_and_post(db=db, post_create=signal, user_id=current_user.id)
     return db_post
 
-@router.get("/feed/scan", response_model=List[post_schemas.PostResponse])
+@router.get("/feed/scan", response_model=List[PostResponse])
 def get_local_feed(
     latitude: float,
     longitude: float,

@@ -1,8 +1,10 @@
-
 from pydantic import BaseModel, UUID4
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+
+from .user import UserResponse
+from .engagement import EngagementMetrics
 
 class ContentType(str, Enum):
     text = 'text'
@@ -34,3 +36,8 @@ class Post(PostBase):
     class Config:
         orm_mode = True
 
+class PostResponse(Post):
+    user: 'UserResponse'
+    engagement_metrics: 'EngagementMetrics'
+
+PostResponse.update_forward_refs()
