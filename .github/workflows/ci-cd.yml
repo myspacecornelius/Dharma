@@ -82,7 +82,7 @@ jobs:
           DATABASE_URL: postgresql+psycopg2://test:test@localhost:5432/sniped_test
           REDIS_URL: redis://localhost:6379
           CI: "true" # To skip migrations in test fixture
-        run: pytest -q
+        run: python -m pytest -q
 
       - name: Run linters
         run: |

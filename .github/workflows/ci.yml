@@ -13,7 +13,7 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
       - run: pip install -U pip && pip install -r requirements.txt
-      - run: pytest -q --cov --cov-report=xml
+      - run: python -m pytest -q --cov --cov-report=xml
 
   frontend:
     runs-on: ubuntu-latest
