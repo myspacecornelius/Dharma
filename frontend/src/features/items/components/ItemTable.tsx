@@ -61,36 +61,6 @@ export const ItemTable: React.FC<ItemTableProps> = ({ items, isLoading, onRowCli
     const [error, setError] = React.useState<string | null>(null); // State for error handling
 
     // Simulate data fetching and error handling
-    // Deltas to be made:
-    // 1. Polish Table UX
-    //    - Improve visual hierarchy and spacing.
-    //    - Replace sorting icons with clear indicators.
-    //    - Ensure hover/focus states are distinct.
-    //    - Implement dark mode support.
-    //    - Create consistent loading, empty, and error states.
-    //
-    // 2. Performance Enhancements
-    //    - Memoize column definitions and derived rows.
-    //    - Implement virtualization for datasets larger than 200 items.
-    //
-    // 3. Accessibility Improvements
-    //    - Add ARIA attributes for sorting and focus management.
-    //    - Ensure keyboard navigation is intuitive.
-    //    - Implement live regions for sorting announcements.
-    //
-    // 4. Testing
-    //    - Write unit tests for sorting and filtering.
-    //    - Implement accessibility tests with jest-axe.
-    //    - Create end-to-end tests with Playwright.
-    //
-    // 5. Development Experience
-    //    - Create Storybook stories for various states.
-    //    - Clarify prop types for better documentation.
-    //    - Extract utility functions for reuse.
-    const [sorting, setSorting] = React.useState<SortingState>([]);
-    const [error, setError] = React.useState<string | null>(null); // State for error handling
-
-    // Simulate data fetching and error handling
     React.useEffect(() => {
         // Example of setting an error
         // setError("Failed to load data."); // Uncomment to simulate an error
@@ -159,24 +129,12 @@ export const ItemTable: React.FC<ItemTableProps> = ({ items, isLoading, onRowCli
         [onRowClick]
     );
 
-    data: items,
+    const table = useReactTable({
+        data: items,
         columns,
         state: { sorting },
-    onSortingChange: setSorting,
+        onSortingChange: setSorting,
         getCoreRowModel: getCoreRowModel(),
-            getSortedRowModel: getSortedRowModel(),
-                enableRowVirtualization: items.length > 200, // Enable virtualization for large datasets
-    });
-
-const table = {
-    getRowModel: () => getRowModel(),
-    virtualRows,
-};
-data: items,
-    columns,
-    state: { sorting },
-onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
     });
 
