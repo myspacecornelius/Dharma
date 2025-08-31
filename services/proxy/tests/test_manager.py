@@ -1,8 +1,9 @@
-import pytest
-import asyncio
-from services.proxy.manager import ProxyManager, Proxy, proxy_id
-from services.proxy.utils.settings import SETTINGS
+
 import fakeredis.aioredis
+import pytest
+
+from services.proxy.manager import Proxy, ProxyManager, proxy_id
+
 
 def test_initial_setup():
     """

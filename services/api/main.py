@@ -3,50 +3,69 @@ SneakerSniper API Gateway
 FastAPI service that coordinates all bot operations
 """
 
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional, List, Dict, Any
-import uuid
-import json
 import asyncio
-import time
-from datetime import datetime, timedelta
-import redis.asyncio as redis
-from contextlib import asynccontextmanager
+import json
 import logging
 import os
+import time
+import uuid
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
+from typing import Any
+
+import redis.asyncio as redis
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from middleware import (
+    EnhancedCacheMiddleware,
+    EnhancedRateLimitMiddleware,
+    ErrorHandlingMiddleware,
+    RequestLoggingMiddleware,
+    SecurityMiddleware,
+    cache_response,
+)
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import schemas and middleware
 from schemas import (
-    AuthRequest, AuthResponse, MonitorRequest, MonitorResponse,
-    CheckoutBatchRequest, CheckoutBatchResponse, CheckoutTaskResponse,
-    MetricsRequest, MetricsResponse, MetricsTimeframe, TaskStatus, MonitorStatus,
-    ErrorResponse, ErrorDetail, BaseResponse, StockAlert, StockAlertResponse,
-    NotificationPreferences, HeatMapEvent, LACESBalance,
-    PredictionRequest, PredictionResponse, WSMessage
+    AuthRequest,
+    AuthResponse,
+    BaseResponse,
+    CheckoutBatchRequest,
+    CheckoutBatchResponse,
+    HeatMapEvent,
+    LACESBalance,
+    MetricsRequest,
+    MetricsResponse,
+    MetricsTimeframe,
+    MonitorRequest,
+    MonitorResponse,
+    MonitorStatus,
+    NotificationPreferences,
+    PredictionRequest,
+    PredictionResponse,
+    StockAlert,
+    StockAlertResponse,
+    TaskStatus,
 )
-from middleware import (
-    RequestLoggingMiddleware, ErrorHandlingMiddleware,
-    SecurityMiddleware, cache_response, EnhancedRateLimitMiddleware, EnhancedCacheMiddleware
-)
-from prometheus_fastapi_instrumentator import Instrumentator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Additional schema for command parsing
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
 
 class CommandParseRequest(BaseModel):
     prompt: str
 
 class CommandParseResponse(BaseModel):
     type: str  # 'command', 'chat', or 'error'
-    command: Optional[Dict[str, Any]] = None
-    response: Optional[str] = None
-    message: Optional[str] = None
+    command: dict[str, Any] | None = None
+    response: str | None = None
+    message: str | None = None
 
 # Security
 security = HTTPBearer()
@@ -142,7 +161,7 @@ async def _rate_cache_startup():
 # WebSocket connection manager
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
+        self.active_connections: dict[str, WebSocket] = {}
 
     async def connect(self, websocket: WebSocket, client_id: str):
         await websocket.accept()
@@ -642,7 +661,7 @@ async def get_laces_balance(current_user: dict = Depends(get_current_user)):
 async def earn_laces(
     reason: str,
     amount: int,
-    reference_id: Optional[str] = None,
+    reference_id: str | None = None,
     current_user: dict = Depends(get_current_user)
 ):
     """Award LACES tokens to user"""
@@ -709,7 +728,7 @@ async def create_heatmap_event(
         
         # Add to time index
         await app.state.redis.zadd(
-            f"heatmap:timeline",
+            "heatmap:timeline",
             {event.event_id: event.timestamp.timestamp()}
         )
         
@@ -740,7 +759,7 @@ async def get_nearby_events(
     lat: float,
     lng: float,
     radius_km: int = 5,
-    event_type: Optional[str] = None,
+    event_type: str | None = None,
     current_user: dict = Depends(get_current_user)
 ):
     """Get HeatMap events near a location"""
@@ -901,7 +920,7 @@ async def update_notification_preferences(
 @app.get("/api/alerts/stock", response_model=StockAlertResponse)
 async def get_stock_alerts(
     limit: int = 50,
-    retailer: Optional[str] = None,
+    retailer: str | None = None,
     current_user: dict = Depends(get_current_user)
 ):
     """Get recent stock alerts"""
@@ -938,50 +957,57 @@ SneakerSniper API Gateway
 FastAPI service that coordinates all bot operations
 """
 
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional, List, Dict, Any
-import uuid
-import json
-import asyncio
-import time
-from datetime import datetime, timedelta
-import redis.asyncio as redis
-from contextlib import asynccontextmanager
 import logging
 import os
+from contextlib import asynccontextmanager
+from typing import Any
+
+from fastapi import Depends, FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from middleware import (
+    ErrorHandlingMiddleware,
+    RequestLoggingMiddleware,
+    SecurityMiddleware,
+    cache_response,
+)
 
 # Import schemas and middleware
 from schemas import (
-    AuthRequest, AuthResponse, MonitorRequest, MonitorResponse,
-    CheckoutBatchRequest, CheckoutBatchResponse, CheckoutTaskResponse,
-    MetricsRequest, MetricsResponse, MetricsTimeframe, TaskStatus, MonitorStatus,
-    ErrorResponse, ErrorDetail, BaseResponse, StockAlert, StockAlertResponse,
-    NotificationPreferences, HeatMapEvent, LACESBalance,
-    PredictionRequest, PredictionResponse, WSMessage, HeatType, HeatSubmit
+    AuthRequest,
+    AuthResponse,
+    BaseResponse,
+    CheckoutBatchRequest,
+    CheckoutBatchResponse,
+    HeatMapEvent,
+    HeatSubmit,
+    LACESBalance,
+    MetricsRequest,
+    MetricsResponse,
+    MonitorRequest,
+    MonitorResponse,
+    NotificationPreferences,
+    PredictionRequest,
+    PredictionResponse,
+    StockAlertResponse,
 )
-from middleware import (
-    RequestLoggingMiddleware, ErrorHandlingMiddleware,
-    SecurityMiddleware, cache_response, EnhancedRateLimitMiddleware, EnhancedCacheMiddleware
-)
-from prometheus_fastapi_instrumentator import Instrumentator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Additional schema for command parsing
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
 
 class CommandParseRequest(BaseModel):
     prompt: str
 
 class CommandParseResponse(BaseModel):
     type: str  # 'command', 'chat', or 'error'
-    command: Optional[Dict[str, Any]] = None
-    response: Optional[str] = None
-    message: Optional[str] = None
+    command: dict[str, Any] | None = None
+    response: str | None = None
+    message: str | None = None
 
 # Security
 security = HTTPBearer()
@@ -1077,7 +1103,7 @@ async def _rate_cache_startup():
 # WebSocket connection manager
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
+        self.active_connections: dict[str, WebSocket] = {}
 
     async def connect(self, websocket: WebSocket, client_id: str):
         await websocket.accept()
@@ -1577,7 +1603,7 @@ async def get_laces_balance(current_user: dict = Depends(get_current_user)):
 async def earn_laces(
     reason: str,
     amount: int,
-    reference_id: Optional[str] = None,
+    reference_id: str | None = None,
     current_user: dict = Depends(get_current_user)
 ):
     """Award LACES tokens to user"""
@@ -1644,7 +1670,7 @@ async def create_heatmap_event(
         
         # Add to time index
         await app.state.redis.zadd(
-            f"heatmap:timeline",
+            "heatmap:timeline",
             {event.event_id: event.timestamp.timestamp()}
         )
         
@@ -1675,7 +1701,7 @@ async def get_nearby_events(
     lat: float,
     lng: float,
     radius_km: int = 5,
-    event_type: Optional[str] = None,
+    event_type: str | None = None,
     current_user: dict = Depends(get_current_user)
 ):
     """Get HeatMap events near a location"""
@@ -1836,7 +1862,7 @@ async def update_notification_preferences(
 @app.get("/api/alerts/stock", response_model=StockAlertResponse)
 async def get_stock_alerts(
     limit: int = 50,
-    retailer: Optional[str] = None,
+    retailer: str | None = None,
     current_user: dict = Depends(get_current_user)
 ):
     """Get recent stock alerts"""
@@ -1868,15 +1894,15 @@ async def get_stock_alerts(
         logger.error(f"Failed to get stock alerts: {e}")
         raise HTTPException(status_code=500, detail="Failed to get alerts")
 
-from pydantic import BaseModel, Field
-from typing import List
+from pydantic import BaseModel
+
 
 class LeaderEntry(BaseModel):
     user_id: str
     score: int
     rank: int
 
-@app.get("/api/community/leaderboard", response_model=List[LeaderEntry])
+@app.get("/api/community/leaderboard", response_model=list[LeaderEntry])
 async def leaderboard(limit: int = 50, current_user: dict = Depends(get_current_user)):
     z = await app.state.redis.zrevrange("laces:leaderboard", 0, limit-1, withscores=True)
     out = []
@@ -1895,15 +1921,16 @@ async def submit_heat(ev: HeatSubmit, current_user: dict = Depends(get_current_u
     await app.state.redis.zadd("heatmap:timeline", {event_id: datetime.now().timestamp()})
     return BaseResponse(success=True)
 
-from pydantic import BaseModel, Field
-from typing import List
+
+from pydantic import BaseModel
+
 
 class LeaderEntry(BaseModel):
     user_id: str
     score: int
     rank: int
 
-@app.get("/api/community/leaderboard", response_model=List[LeaderEntry])
+@app.get("/api/community/leaderboard", response_model=list[LeaderEntry])
 async def leaderboard(limit: int = 50, current_user: dict = Depends(get_current_user)):
     z = await app.state.redis.zrevrange("laces:leaderboard", 0, limit-1, withscores=True)
     out = []
@@ -1922,15 +1949,16 @@ async def submit_heat(ev: HeatSubmit, current_user: dict = Depends(get_current_u
     await app.state.redis.zadd("heatmap:timeline", {event_id: datetime.now().timestamp()})
     return BaseResponse(success=True)
 
-from pydantic import BaseModel, Field
-from typing import List
+
+from pydantic import BaseModel
+
 
 class LeaderEntry(BaseModel):
     user_id: str
     score: int
     rank: int
 
-@app.get("/api/community/leaderboard", response_model=List[LeaderEntry])
+@app.get("/api/community/leaderboard", response_model=list[LeaderEntry])
 async def leaderboard(limit: int = 50, current_user: dict = Depends(get_current_user)):
     z = await app.state.redis.zrevrange("laces:leaderboard", 0, limit-1, withscores=True)
     out = []
@@ -1949,15 +1977,16 @@ async def submit_heat(ev: HeatSubmit, current_user: dict = Depends(get_current_u
     await app.state.redis.zadd("heatmap:timeline", {event_id: datetime.now().timestamp()})
     return BaseResponse(success=True)
 
-from pydantic import BaseModel, Field
-from typing import List
+
+from pydantic import BaseModel
+
 
 class LeaderEntry(BaseModel):
     user_id: str
     score: int
     rank: int
 
-@app.get("/api/community/leaderboard", response_model=List[LeaderEntry])
+@app.get("/api/community/leaderboard", response_model=list[LeaderEntry])
 async def leaderboard(limit: int = 50, current_user: dict = Depends(get_current_user)):
     z = await app.state.redis.zrevrange("laces:leaderboard", 0, limit-1, withscores=True)
     out = []
@@ -1976,15 +2005,16 @@ async def submit_heat(ev: HeatSubmit, current_user: dict = Depends(get_current_u
     await app.state.redis.zadd("heatmap:timeline", {event_id: datetime.now().timestamp()})
     return BaseResponse(success=True)
 
-from pydantic import BaseModel, Field
-from typing import List
+
+from pydantic import BaseModel
+
 
 class LeaderEntry(BaseModel):
     user_id: str
     score: int
     rank: int
 
-@app.get("/api/community/leaderboard", response_model=List[LeaderEntry])
+@app.get("/api/community/leaderboard", response_model=list[LeaderEntry])
 async def leaderboard(limit: int = 50, current_user: dict = Depends(get_current_user)):
     z = await app.state.redis.zrevrange("laces:leaderboard", 0, limit-1, withscores=True)
     out = []
@@ -2003,15 +2033,16 @@ async def submit_heat(ev: HeatSubmit, current_user: dict = Depends(get_current_u
     await app.state.redis.zadd("heatmap:timeline", {event_id: datetime.now().timestamp()})
     return BaseResponse(success=True)
 
-from pydantic import BaseModel, Field
-from typing import List
+
+from pydantic import BaseModel
+
 
 class LeaderEntry(BaseModel):
     user_id: str
     score: int
     rank: int
 
-@app.get("/api/community/leaderboard", response_model=List[LeaderEntry])
+@app.get("/api/community/leaderboard", response_model=list[LeaderEntry])
 async def leaderboard(limit: int = 50, current_user: dict = Depends(get_current_user)):
     z = await app.state.redis.zrevrange("laces:leaderboard", 0, limit-1, withscores=True)
     out = []

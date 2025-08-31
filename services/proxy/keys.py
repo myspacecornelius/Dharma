@@ -2,7 +2,6 @@
 Centralized Redis key schema for the proxy service.
 """
 
-from services.proxy.models import Proxy
 
 # Key Prefixes
 PREFIX = "snpd"

@@ -5,15 +5,15 @@ High-performance SKU monitoring with <250ms polling
 
 import asyncio
 import json
-import time
-import httpx
-import redis.asyncio as redis
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
-from datetime import datetime
 import logging
 import os
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 
+import httpx
+import redis.asyncio as redis
 from db import StockDatabase
 
 # Configure logging
@@ -27,7 +27,7 @@ class MonitorConfig:
     sku: str
     retailer: str
     interval_ms: int
-    webhook_url: Optional[str] = None
+    webhook_url: str | None = None
     
 @dataclass
 class ProductInfo:
@@ -36,9 +36,9 @@ class ProductInfo:
     title: str
     price: float
     in_stock: bool
-    variants: Dict[str, Any]
-    image_url: Optional[str] = None
-    product_url: Optional[str] = None
+    variants: dict[str, Any]
+    image_url: str | None = None
+    product_url: str | None = None
 
 class RetailerMonitor:
     """Base class for retailer-specific monitors"""
@@ -46,14 +46,14 @@ class RetailerMonitor:
     def __init__(self, client: httpx.AsyncClient):
         self.client = client
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache"
         }
 
-    async def _request(self, method: str, url: str, **kwargs) -> Optional[httpx.Response]:
+    async def _request(self, method: str, url: str, **kwargs) -> httpx.Response | None:
         """HTTP request helper with retry logic.
 
         Args:
@@ -86,7 +86,7 @@ class ShopifyMonitor(RetailerMonitor):
     
     def __init__(self, client: httpx.AsyncClient, store_url: str):
         super().__init__(client)
-        self.store_url = store_url.rstrip('/')
+        self.store_url = store_url.rstrip("/")
         
     async def check_stock(self, sku: str) -> ProductInfo:
         """Check Shopify product.json endpoint"""
@@ -97,19 +97,19 @@ class ShopifyMonitor(RetailerMonitor):
 
             if response:
                 data = response.json()
-                product = data.get('product', {})
+                product = data.get("product", {})
 
                 # Check variant availability
-                variants = product.get('variants', [])
-                available_variants = [v for v in variants if v.get('available', False)]
+                variants = product.get("variants", [])
+                available_variants = [v for v in variants if v.get("available", False)]
 
                 return ProductInfo(
                     sku=sku,
-                    title=product.get('title', ''),
-                    price=float(variants[0].get('price', 0)) if variants else 0,
+                    title=product.get("title", ""),
+                    price=float(variants[0].get("price", 0)) if variants else 0,
                     in_stock=len(available_variants) > 0,
-                    variants={v['id']: v for v in variants},
-                    image_url=product.get('image', {}).get('src'),
+                    variants={v["id"]: v for v in variants},
+                    image_url=product.get("image", {}).get("src"),
                     product_url=f"{self.store_url}/products/{product.get('handle', sku)}"
                 )
 
@@ -232,18 +232,18 @@ class MonitorService:
     """Main monitoring service that manages all monitors"""
     
     def __init__(self):
-        self.redis_client: Optional[redis.Redis] = None
-        self.monitors: Dict[str, asyncio.Task] = {}
+        self.redis_client: redis.Redis | None = None
+        self.monitors: dict[str, asyncio.Task] = {}
         self.http_client = httpx.AsyncClient(
             limits=httpx.Limits(max_keepalive_connections=25, max_connections=100),
             timeout=httpx.Timeout(5.0),
             http2=True
         )
         self.retailer_monitors = {
-            'shopify': ShopifyMonitor(self.http_client, 'https://kith.com'),
-            'footsites': FootsitesMonitor(self.http_client),
-            'snkrs': SNKRSMonitor(self.http_client),
-            'finishline': FinishLineMonitor(self.http_client),
+            "shopify": ShopifyMonitor(self.http_client, "https://kith.com"),
+            "footsites": FootsitesMonitor(self.http_client),
+            "snkrs": SNKRSMonitor(self.http_client),
+            "finishline": FinishLineMonitor(self.http_client),
         }
         db_config = {
             "host": os.getenv("DB_HOST", "localhost"),
@@ -290,7 +290,7 @@ class MonitorService:
                 except Exception as e:
                     logger.error(f"Error handling command: {e}")
     
-    async def _handle_command(self, command: Dict[str, Any]):
+    async def _handle_command(self, command: dict[str, Any]):
         """Handle monitor commands"""
         action = command.get("action")
         
@@ -448,7 +448,7 @@ class MonitorService:
         if config.webhook_url:
             asyncio.create_task(self._send_webhook(config.webhook_url, alert_data))
     
-    async def _send_webhook(self, url: str, data: Dict[str, Any]):
+    async def _send_webhook(self, url: str, data: dict[str, Any]):
         """Send webhook notification"""
         try:
             await self.http_client.post(url, json=data, timeout=5.0)

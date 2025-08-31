@@ -3,17 +3,23 @@ Seed data script for Sniped platform
 Populates initial stores, sample users, and test data
 """
 
-import asyncio
-import uuid
-from datetime import datetime, timedelta
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import os
 import random
+import uuid
+from datetime import datetime, timedelta
+
 from models.database import (
-    Base, User, Store, Event, LacesLedger, 
-    VerificationLevel, EventType, StoreType, LacesReason
+    Event,
+    EventType,
+    LacesLedger,
+    LacesReason,
+    Store,
+    StoreType,
+    User,
+    VerificationLevel,
 )
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Database connection
 DATABASE_URL = os.getenv(

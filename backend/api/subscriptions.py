@@ -1,8 +1,8 @@
 
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-import uuid
 
 from .. import models, schemas
 from ..core.database import get_db
@@ -21,7 +21,7 @@ def create_subscription(subscription: schemas.SubscriptionCreate, db: Session = 
     db.refresh(db_subscription)
     return db_subscription
 
-@router.get("/my", response_model=List[schemas.Subscription])
+@router.get("/my", response_model=list[schemas.Subscription])
 def get_my_subscriptions(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     subscriptions = db.query(models.Subscription).filter(models.Subscription.user_id == current_user.user_id).all()
     return subscriptions

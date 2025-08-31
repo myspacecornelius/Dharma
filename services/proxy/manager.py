@@ -4,33 +4,40 @@ Intelligent proxy rotation and health monitoring
 """
 
 
-import os
 import asyncio
-import json
-import time
-import logging
-import random
 import hashlib
+import json
+import logging
+import os
+import random
+import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import asdict
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime
+from typing import Any
 
-from services.proxy.utils.settings import SETTINGS
-from services.proxy.utils.metrics import proxy_requests, proxy_inflight, proxy_health, proxy_latency, proxy_active_total, proxy_burned_total, proxy_cost_total
 from services.proxy.keys import (
-    proxy_detail_key,
-    inflight_key,
     ACTIVE_PROXIES_SET,
     BURNED_PROXIES_SET,
-    METRICS_HEALTH_HASH,
+    FINAL_STATS_KEY,
     METRICS_COST_BREAKDOWN_HASH,
     METRICS_COST_TODAY_KEY,
-    FINAL_STATS_KEY,
+    METRICS_HEALTH_HASH,
     SYSTEM_ALERTS_CHANNEL,
+    inflight_key,
+    proxy_detail_key,
 )
 from services.proxy.models import Proxy
+from services.proxy.utils.metrics import (
+    proxy_active_total,
+    proxy_burned_total,
+    proxy_cost_total,
+    proxy_health,
+    proxy_inflight,
+    proxy_latency,
+    proxy_requests,
+)
+from services.proxy.utils.settings import SETTINGS
 
 try:
     import httpx
@@ -52,7 +59,7 @@ def proxy_id(p: "Proxy") -> str:
     return f"{p.provider}:{p.proxy_type}:{sticky}:{h}"
 
 def now_utc_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00","Z")
+    return datetime.now(UTC).isoformat().replace("+00:00","Z")
 
 def redacted_auth(p: "Proxy") -> str:
     protocol, rest = p.url.split("://", 1)
@@ -65,7 +72,7 @@ class ProxyProvider(ABC):
     """Abstract base for proxy providers"""
     
     @abstractmethod
-    async def get_proxies(self, count: int = 10) -> List[Proxy]:
+    async def get_proxies(self, count: int = 10) -> list[Proxy]:
         """Get new proxies from provider"""
         pass
     
@@ -81,9 +88,9 @@ class BrightDataProvider(ProxyProvider):
         self.customer_id = customer_id
         self.password = password
         self.zone = zone
-        self.base_url = f"http://zproxy.lum-superproxy.io:22225"
+        self.base_url = "http://zproxy.lum-superproxy.io:22225"
         
-    async def get_proxies(self, count: int = 10) -> List[Proxy]:
+    async def get_proxies(self, count: int = 10) -> list[Proxy]:
         """Get ISP proxies from Bright Data"""
         proxies = []
         
@@ -119,7 +126,7 @@ class OxylabsProvider(ProxyProvider):
         self.password = password
         self.base_url = "http://pr.oxylabs.io:7777"
         
-    async def get_proxies(self, count: int = 10) -> List[Proxy]:
+    async def get_proxies(self, count: int = 10) -> list[Proxy]:
         """Get residential proxies from Oxylabs"""
         proxies = []
         
@@ -138,9 +145,9 @@ class OxylabsProvider(ProxyProvider):
     async def rotate_ip(self, proxy: Proxy) -> Proxy:
         """Rotate IP by changing session in username"""
         if proxy.username:
-            parts = proxy.username.split('-')
+            parts = proxy.username.split("-")
             parts[-1] = str(int(time.time())) + str(random.randint(100, 999))
-            proxy.username = '-'.join(parts)
+            proxy.username = "-".join(parts)
         return proxy
 
 class ProxyManager:
@@ -183,28 +190,28 @@ class ProxyManager:
         """Initialize proxy providers from config"""
         # In production, load from environment variables
         # Example initialization:
-        if all(key in os.environ for key in ['BRIGHT_DATA_CUSTOMER', 'BRIGHT_DATA_PASSWORD', 'BRIGHT_DATA_ZONE']):
-            self.providers['bright_data'] = BrightDataProvider(
-                customer_id=os.environ['BRIGHT_DATA_CUSTOMER'],
-                password=os.environ['BRIGHT_DATA_PASSWORD'],
-                zone=os.environ['BRIGHT_DATA_ZONE']
+        if all(key in os.environ for key in ["BRIGHT_DATA_CUSTOMER", "BRIGHT_DATA_PASSWORD", "BRIGHT_DATA_ZONE"]):
+            self.providers["bright_data"] = BrightDataProvider(
+                customer_id=os.environ["BRIGHT_DATA_CUSTOMER"],
+                password=os.environ["BRIGHT_DATA_PASSWORD"],
+                zone=os.environ["BRIGHT_DATA_ZONE"]
             )
         
-        if all(key in os.environ for key in ['OXYLABS_USERNAME', 'OXYLABS_PASSWORD']):
-            self.providers['oxylabs'] = OxylabsProvider(
-                username=os.environ['OXYLABS_USERNAME'],
-                password=os.environ['OXYLABS_PASSWORD']
+        if all(key in os.environ for key in ["OXYLABS_USERNAME", "OXYLABS_PASSWORD"]):
+            self.providers["oxylabs"] = OxylabsProvider(
+                username=os.environ["OXYLABS_USERNAME"],
+                password=os.environ["OXYLABS_PASSWORD"]
             )
     
-    async def get_proxy(self, requirements: Optional[Dict[str, Any]] = None) -> Optional[Proxy]:
+    async def get_proxy(self, requirements: dict[str, Any] | None = None) -> Proxy | None:
         """Get best available proxy based on requirements"""
         if self.redis_client is None:
             logger.error("Redis client is not initialized.")
             return None
         requirements = requirements or {}
-        proxy_type = requirements.get('type', 'any')
-        location = requirements.get('location', 'any')
-        min_health_score = requirements.get('min_health_score', SETTINGS.min_health_score)
+        proxy_type = requirements.get("type", "any")
+        location = requirements.get("location", "any")
+        min_health_score = requirements.get("min_health_score", SETTINGS.min_health_score)
 
         # Get all active proxies
         proxy_ids = await self.redis_client.smembers(ACTIVE_PROXIES_SET)
@@ -224,9 +231,9 @@ class ProxyManager:
             proxy = Proxy.from_dict(proxy_data)
 
             # Filter by requirements
-            if proxy_type != 'any' and proxy.proxy_type != proxy_type:
+            if proxy_type != "any" and proxy.proxy_type != proxy_type:
                 continue
-            if location != 'any' and proxy.location != location:
+            if location != "any" and proxy.location != location:
                 continue
             if proxy.health_score < min_health_score:
                 continue
@@ -250,7 +257,7 @@ class ProxyManager:
         pid = proxy_id(pick)
         inflight_k = inflight_key(pid)
         inflight = await self.redis_client.incr(inflight_k)
-        if inflight > requirements.get('max_inflight', SETTINGS.max_inflight):
+        if inflight > requirements.get("max_inflight", SETTINGS.max_inflight):
             await self.redis_client.decr(inflight_k)
             logger.debug("Proxy at capacity; trying next candidate")
             scored_proxies = [sp for sp in scored_proxies if sp[1] is not pick]
@@ -269,7 +276,7 @@ class ProxyManager:
 
     
     async def report_usage(self, proxy: Proxy, success: bool, response_time: float,
-                          bandwidth_mb: float = 0.0, error: Optional[str] = None):
+                          bandwidth_mb: float = 0.0, error: str | None = None):
         """Atomic stats + EWMA + metrics"""
         if self.redis_client is None:
             logger.error("Redis client is not initialized."); return
@@ -497,16 +504,16 @@ class ProxyManager:
         """Calculate cost for proxy usage"""
         # Cost model (example rates)
         cost_per_gb = {
-            'residential': 15.0,  # $15/GB
-            'isp': 3.0,          # $3/GB  
-            'datacenter': 0.5    # $0.50/GB
+            "residential": 15.0,  # $15/GB
+            "isp": 3.0,          # $3/GB  
+            "datacenter": 0.5    # $0.50/GB
         }
         
         base_rate = cost_per_gb.get(proxy.proxy_type, 1.0)
         bandwidth_cost = (bandwidth_mb / 1024) * base_rate
         
         # Add per-request cost for residential
-        if proxy.proxy_type == 'residential':
+        if proxy.proxy_type == "residential":
             bandwidth_cost += 0.001  # $0.001 per request
             
         return bandwidth_cost
@@ -525,7 +532,7 @@ class ProxyManager:
         if active_count < 10:
             await self._provision_proxies(20)
     
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         if self.redis_client is None:
             logger.error("Redis client is not initialized.")
             return {}
@@ -534,15 +541,15 @@ class ProxyManager:
         burned_proxies = await self.redis_client.smembers(BURNED_PROXIES_SET)
         
         stats = {
-            'active': len(active_proxies),
-            'burned': len(burned_proxies),
-            'providers': list(self.providers.keys()),
-            'cost_today': float(await self.redis_client.get(METRICS_COST_TODAY_KEY) or 0),
-            'health_breakdown': {
-                'excellent': 0,  # 90-100
-                'good': 0,       # 70-89
-                'fair': 0,       # 50-69
-                'poor': 0        # <50
+            "active": len(active_proxies),
+            "burned": len(burned_proxies),
+            "providers": list(self.providers.keys()),
+            "cost_today": float(await self.redis_client.get(METRICS_COST_TODAY_KEY) or 0),
+            "health_breakdown": {
+                "excellent": 0,  # 90-100
+                "good": 0,       # 70-89
+                "fair": 0,       # 50-69
+                "poor": 0        # <50
             }
         }
         
@@ -554,13 +561,13 @@ class ProxyManager:
                 score = proxy.health_score
                 
                 if score >= 90:
-                    stats['health_breakdown']['excellent'] += 1
+                    stats["health_breakdown"]["excellent"] += 1
                 elif score >= 70:
-                    stats['health_breakdown']['good'] += 1
+                    stats["health_breakdown"]["good"] += 1
                 elif score >= 50:
-                    stats['health_breakdown']['fair'] += 1
+                    stats["health_breakdown"]["fair"] += 1
                 else:
-                    stats['health_breakdown']['poor'] += 1
+                    stats["health_breakdown"]["poor"] += 1
                     
         return stats
     
@@ -595,7 +602,7 @@ class ProxiedClient:
     async def request(self, method: str, url: str, **kwargs):  # type: ignore
         """Make HTTP request with proxy"""
         # Get a proxy
-        proxy = await self.proxy_manager.get_proxy(kwargs.pop('proxy_requirements', {}))
+        proxy = await self.proxy_manager.get_proxy(kwargs.pop("proxy_requirements", {}))
         if not proxy:
             raise Exception("No proxy available")
             
@@ -628,7 +635,7 @@ class ProxiedClient:
         finally:
             # Report usage
             response_time = (time.monotonic() - start_time) * 1000
-            bandwidth_mb = len(response.content) / (1024 * 1024) if (success and response and hasattr(response, 'content')) else 0
+            bandwidth_mb = len(response.content) / (1024 * 1024) if (success and response and hasattr(response, "content")) else 0
 
             await self.proxy_manager.report_usage(
                 proxy=proxy,
@@ -640,7 +647,6 @@ class ProxiedClient:
 
 async def main():
     """Main entry point"""
-    import os
     
     manager = ProxyManager()
     

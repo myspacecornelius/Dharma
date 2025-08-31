@@ -1,13 +1,15 @@
+import os
+from typing import Any
+
+import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Any
-import numpy as np, os
 
 MODEL_NAME = os.getenv("MODEL_NAME","price_forecaster")
 app = FastAPI(title=f"{MODEL_NAME} mock server")
 
 class PredictPayload(BaseModel):
-    instances: List[Any]
+    instances: list[Any]
 
 @app.get(f"/v1/models/{MODEL_NAME}")
 def status():

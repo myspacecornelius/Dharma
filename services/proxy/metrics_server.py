@@ -1,7 +1,8 @@
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.applications import Starlette
-from starlette.responses import Response, PlainTextResponse
+from starlette.responses import PlainTextResponse, Response
 from starlette.routing import Route
+
 
 async def metrics(_):
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

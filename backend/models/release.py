@@ -1,9 +1,12 @@
 
 import uuid
-from sqlalchemy import Column, String, DateTime, Numeric
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+
+from sqlalchemy import Column, DateTime, Numeric, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import func
+
 from backend.database import Base
+
 
 class Release(Base):
     __tablename__ = "releases"

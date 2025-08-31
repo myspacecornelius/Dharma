@@ -3,11 +3,16 @@ Shopify Request-Mode Checkout Adapter
 """
 import random
 import time
-from typing import Optional
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from services.checkout.adapters.base import BaseCheckoutAdapter, CheckoutResult, CheckoutTask, Profile
+from services.checkout.adapters.base import (
+    BaseCheckoutAdapter,
+    CheckoutResult,
+    CheckoutTask,
+    Profile,
+)
+
 
 class ShopifyRequestAdapter(BaseCheckoutAdapter):
     """
@@ -26,7 +31,7 @@ class ShopifyRequestAdapter(BaseCheckoutAdapter):
             return CheckoutResult(success=True, order_id=f"DRYRUN-ORDER-{int(time.time())}")
 
         # The store URL should be part of the task details
-        store_url = task.product_url.split('/products/')[0]
+        store_url = task.product_url.split("/products/")[0]
 
         try:
             # Step 1: Add to cart
@@ -44,14 +49,14 @@ class ShopifyRequestAdapter(BaseCheckoutAdapter):
             return CheckoutResult(success=False, error=str(e))
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=5))
-    async def _add_to_cart(self, store_url: str, variant_id: str) -> Optional[dict]:
+    async def _add_to_cart(self, store_url: str, variant_id: str) -> dict | None:
         """Add item to cart and return the response JSON."""
         url = f"{store_url}/cart/add.js"
         data = {"items": [{"id": variant_id, "quantity": 1}]}
         headers = {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'User-Agent': self._get_user_agent()
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": self._get_user_agent()
         }
 
         response = await self.http_client.post(url, json=data, headers=headers, timeout=10.0)

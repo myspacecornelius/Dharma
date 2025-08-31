@@ -1,10 +1,9 @@
 """
 Adapter registry for discovering and managing checkout adapters.
 """
-import pkgutil
 import inspect
-from typing import Dict, Type
 import logging
+import pkgutil
 
 from services.checkout.adapters.base import BaseCheckoutAdapter
 
@@ -14,7 +13,7 @@ class AdapterRegistry:
     """A registry for discovering and accessing checkout adapter classes."""
 
     def __init__(self):
-        self.adapters: Dict[str, Type[BaseCheckoutAdapter]] = {}
+        self.adapters: dict[str, type[BaseCheckoutAdapter]] = {}
 
     def discover_adapters(self, package) -> None:
         """
@@ -41,6 +40,6 @@ class AdapterRegistry:
                     count += 1
         logger.info(f"Discovered and registered {count} adapters.")
 
-    def get_adapter_class(self, key: str) -> Type[BaseCheckoutAdapter] | None:
+    def get_adapter_class(self, key: str) -> type[BaseCheckoutAdapter] | None:
         """Get an adapter class by its key."""
         return self.adapters.get(key)

@@ -1,10 +1,12 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, Enum, DateTime, JSON, Float
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
-from sqlalchemy.orm import relationship
-import uuid
 import enum
+import uuid
 from datetime import datetime
+
 from database import Base  # Assuming you have a database.py file for SQLAlchemy setup
+from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, String
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.orm import relationship
+
 
 class ContentType(enum.Enum):
     text = "text"

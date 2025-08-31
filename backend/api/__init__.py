@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter
 
-from . import users, posts, releases, subscriptions, uploads, auth
+from . import auth, posts, releases, subscriptions, uploads, users
 
 router = APIRouter()
 
