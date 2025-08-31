@@ -1,0 +1,79 @@
+name: Backend • Lint & Test
+on:
+  push:
+    branches: [ master, main, develop, feat-**, fix-** ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONUNBUFFERED: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      # If you used 5132 locally, keep CI at 5432 to avoid collisions
+      POSTGRES_USER: dharma
+      POSTGRES_PASSWORD: dharma
+      POSTGRES_DB: dharma
+      DATABASE_URL: postgresql://dharma:dharma@localhost:5432/dharma
+      # Celery/Pydantic compatibility
+      CELERY_APP: api.tasks.celery_app
+      Pydantic_V2: "1"
+
+    services:
+      postgres:
+        image: postgres:16
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: dharma
+          POSTGRES_PASSWORD: dharma
+          POSTGRES_DB: dharma
+        options: >-
+          --health-cmd="pg_isready -U dharma -d dharma"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install -r requirements.txt
+          # If you have backend/requirements.txt, adjust path
+
+      - name: Wait for DB
+        run: |
+          for i in {1..40}; do
+            pg_isready -h localhost -p 5432 -U dharma && break
+            sleep 2
+          done
+
+      - name: Migrate (alembic) & seed
+        if: hashFiles('alembic.ini') != ''
+        run: |
+          alembic upgrade head || true
+          python -c "print('seed step optional')" || true
+
+      - name: Lint
+        run: |
+          pip install ruff==0.4.10
+          ruff check .
+
+      - name: Run tests
+        env:
+          PYTHONPATH: .
+        run: |
+          pip install pytest pytest-cov
+          pytest -q --maxfail=1 --disable-warnings
