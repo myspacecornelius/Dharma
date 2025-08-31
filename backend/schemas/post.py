@@ -1,26 +1,27 @@
 
-from pydantic import BaseModel, UUID4
-from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
+from pydantic import UUID4, BaseModel
+
+
 class ContentType(str, Enum):
-    text = 'text'
-    image = 'image'
-    video = 'video'
+    text = "text"
+    image = "image"
+    video = "video"
 
 class Visibility(str, Enum):
-    public = 'public'
-    local = 'local'
-    friends = 'friends'
+    public = "public"
+    local = "local"
+    friends = "friends"
 
 class PostBase(BaseModel):
     content_type: ContentType
-    content_text: Optional[str] = None
-    media_url: Optional[str] = None
-    tags: Optional[List[str]] = None
-    geo_tag_lat: Optional[float] = None
-    geo_tag_long: Optional[float] = None
+    content_text: str | None = None
+    media_url: str | None = None
+    tags: list[str] | None = None
+    geo_tag_lat: float | None = None
+    geo_tag_long: float | None = None
     visibility: Visibility = Visibility.public
 
 class PostCreate(PostBase):

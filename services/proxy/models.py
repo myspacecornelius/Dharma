@@ -1,7 +1,7 @@
-from dataclasses import dataclass, asdict
-from typing import Dict, List, Optional
-from datetime import datetime
 import json
+from dataclasses import asdict, dataclass
+from datetime import datetime
+
 
 @dataclass
 class Proxy:
@@ -9,17 +9,17 @@ class Proxy:
     url: str
     provider: str
     proxy_type: str  # 'residential', 'isp', 'datacenter'
-    location: Optional[str] = None
-    username: Optional[str] = None
-    password: Optional[str] = None
-    sticky_session_id: Optional[str] = None
+    location: str | None = None
+    username: str | None = None
+    password: str | None = None
+    sticky_session_id: str | None = None
     requests: int = 0
     failures: int = 0
     success: int = 0
     total_bandwidth_mb: float = 0.0
-    last_used: Optional[datetime] = None
-    last_error: Optional[str] = None
-    response_times: Optional[List[float]] = None
+    last_used: datetime | None = None
+    last_error: str | None = None
+    response_times: list[float] | None = None
     
     def __post_init__(self):
         if self.response_times is None:
@@ -29,7 +29,7 @@ class Proxy:
     def auth_url(self) -> str:
         """Get proxy URL with authentication"""
         if self.username and self.password:
-            protocol, rest = self.url.split('://', 1)
+            protocol, rest = self.url.split("://", 1)
             return f"{protocol}://{self.username}:{self.password}@{rest}"
         return self.url
     
@@ -68,36 +68,36 @@ class Proxy:
             
         return min(100, success_rate + time_score + recency_score)
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to dictionary for Redis storage"""
         data = asdict(self)
-        data['last_used'] = self.last_used.isoformat() if self.last_used else ''
+        data["last_used"] = self.last_used.isoformat() if self.last_used else ""
         if self.response_times is not None:
-            data['response_times'] = json.dumps(self.response_times[-100:])  # Keep last 100
+            data["response_times"] = json.dumps(self.response_times[-100:])  # Keep last 100
         else:
-            data['response_times'] = json.dumps([])
+            data["response_times"] = json.dumps([])
         # Convert all None values to empty strings for Redis compatibility
         for k, v in data.items():
             if v is None:
-                data[k] = ''
+                data[k] = ""
         return data
     
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Proxy':
+    def from_dict(cls, data: dict) -> "Proxy":
         """Create from dictionary"""
-        if data.get('last_used'):
-            data['last_used'] = datetime.fromisoformat(data['last_used'])
+        if data.get("last_used"):
+            data["last_used"] = datetime.fromisoformat(data["last_used"])
         else:
-            data['last_used'] = None
+            data["last_used"] = None
 
-        if data.get('response_times') and isinstance(data['response_times'], str):
-            data['response_times'] = json.loads(data['response_times'])
+        if data.get("response_times") and isinstance(data["response_times"], str):
+            data["response_times"] = json.loads(data["response_times"])
 
         # Convert numeric fields from string
-        for field in ['requests', 'failures', 'success']:
+        for field in ["requests", "failures", "success"]:
             if field in data and data[field]:
                 data[field] = int(data[field])
-        if 'total_bandwidth_mb' in data and data['total_bandwidth_mb']:
-            data['total_bandwidth_mb'] = float(data['total_bandwidth_mb'])
+        if "total_bandwidth_mb" in data and data["total_bandwidth_mb"]:
+            data["total_bandwidth_mb"] = float(data["total_bandwidth_mb"])
 
         return cls(**data)

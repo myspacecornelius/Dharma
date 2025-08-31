@@ -2,24 +2,24 @@
 API Middleware for logging, rate limiting, error handling, and security
 """
 
-from fastapi import Request, Response, HTTPException
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.middleware.cors import CORSMiddleware
-import time
-import json
-import logging
-import uuid
-from datetime import datetime, timedelta
-import redis.asyncio as redis
-from typing import Dict, Optional, Callable
+import asyncio
+import base64
 import hashlib
 import hmac
-from functools import wraps
-import asyncio
+import json
+import logging
 import os
-import base64
+import time
+import uuid
+from collections.abc import Callable
+from datetime import datetime
+from functools import wraps
+
+import redis.asyncio as redis
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse
 from prometheus_client import Counter, Gauge
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 logger = logging.getLogger(__name__)
@@ -192,7 +192,7 @@ def cache_response(ttl: int = 300):
             await redis_client.setex(
                 cache_key,
                 ttl,
-                json.dumps(result.dict() if hasattr(result, 'dict') else result)
+                json.dumps(result.dict() if hasattr(result, "dict") else result)
             )
             
             return result
@@ -210,7 +210,7 @@ class RequestIDContext:
     def set(self, request_id: str):
         self._request_id = request_id
     
-    def get(self) -> Optional[str]:
+    def get(self) -> str | None:
         return self._request_id
 
 request_id_context = RequestIDContext()
@@ -251,11 +251,11 @@ class EnhancedRateLimitMiddleware:
 
     async def _ensure_lua(self):
         if self.lua_sha is None:
-            with open(self.lua_path, "r", encoding="utf-8") as f:
+            with open(self.lua_path, encoding="utf-8") as f:
                 script = f.read()
             self.lua_sha = await self.redis.script_load(script)
 
-    def _keys(self, scope, route: str, user: Optional[str], ip: str):
+    def _keys(self, scope, route: str, user: str | None, ip: str):
         base = "rl"
         return {
             "global": f"{base}:g",
@@ -325,7 +325,7 @@ class EnhancedCacheMiddleware:
         self.default_ttl = default_ttl
         self.swr_ttl = swr_ttl
 
-    def _key(self, route: str, user: Optional[str], query: str, body: bytes) -> str:
+    def _key(self, route: str, user: str | None, query: str, body: bytes) -> str:
         h = hmac.new(self.secret, digestmod=hashlib.sha256)
         h.update(route.encode())
         h.update(b"|u=" + (user or "anon").encode())

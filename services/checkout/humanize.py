@@ -1,6 +1,8 @@
 import asyncio
 import random
+
 from playwright.async_api import Page
+
 
 class Humanize:
     """
@@ -22,8 +24,8 @@ class Humanize:
         if not box:
             return
 
-        x = box['x'] + box['width'] / 2
-        y = box['y'] + box['height'] / 2
+        x = box["x"] + box["width"] / 2
+        y = box["y"] + box["height"] / 2
         
         await self.page.mouse.move(
             x + random.uniform(-5, 5),
@@ -38,5 +40,5 @@ class Humanize:
     async def a_scroll(self, scrolls: int = 5, scroll_delay_range: tuple = (0.5, 1.5)):
         """Scrolls the page randomly to mimic human reading behavior."""
         for _ in range(scrolls):
-            await self.page.evaluate(f'window.scrollBy(0, {random.randint(100, 500)})')
+            await self.page.evaluate(f"window.scrollBy(0, {random.randint(100, 500)})")
             await asyncio.sleep(random.uniform(*scroll_delay_range))

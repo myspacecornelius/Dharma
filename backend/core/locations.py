@@ -1,12 +1,12 @@
 
-from sqlalchemy.orm import Session
 from geoalchemy2 import WKTElement
-from shapely.geometry import Point
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from backend.models import location as location_models
 from backend.models import post as post_models
 from backend.schemas import post as post_schemas
+
 
 def create_location_and_post(
     db: Session,
@@ -14,7 +14,7 @@ def create_location_and_post(
     user_id: int,
 ):
     # Create a WKTElement for the location
-    point = WKTElement(f'POINT({post_create.geo_tag_long} {post_create.geo_tag_lat})', srid=4326)
+    point = WKTElement(f"POINT({post_create.geo_tag_long} {post_create.geo_tag_lat})", srid=4326)
 
     # Check for existing location within a small radius to collapse duplicate signals
     # For simplicity, let's define a small radius (e.g., 10 meters) for collapsing
@@ -41,7 +41,7 @@ def create_location_and_post(
         content_text=post_create.content_text,
         user_id=user_id,
         location_id=location_id,
-        post_type='GENERAL',  # Map from content_type, assuming 'GENERAL' for now
+        post_type="GENERAL",  # Map from content_type, assuming 'GENERAL' for now
         media_url=post_create.media_url,
         tags=post_create.tags,
         visibility=post_create.visibility

@@ -1,5 +1,9 @@
-import asyncio, json, os, hashlib
-from datetime import datetime, timezone
+import asyncio
+import hashlib
+import json
+import os
+from datetime import UTC, datetime
+
 try:
     import redis.asyncio as redis
 except ImportError as e:
@@ -33,7 +37,7 @@ async def main():
         moved+=1
     if legacy_active: await r.delete("proxies:active")
     if legacy_burned: await r.delete("proxies:burned")
-    await r.hset("snpd:migrations", mapping={"2025_08_16_proxy_key_migration":"ok","at":datetime.now(timezone.utc).isoformat()})
+    await r.hset("snpd:migrations", mapping={"2025_08_16_proxy_key_migration":"ok","at":datetime.now(UTC).isoformat()})
     await r.close()
     print(f"moved {moved} proxy records")
 

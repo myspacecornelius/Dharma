@@ -2,13 +2,13 @@
 Alembic environment configuration for Sniped database migrations
 """
 
-from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-from alembic import context
 import os
 import sys
+from logging.config import fileConfig
 from pathlib import Path
+
+from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -77,7 +77,7 @@ def run_migrations_online() -> None:
 
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration['sqlalchemy.url'] = get_url()
+    configuration["sqlalchemy.url"] = get_url()
     
     connectable = engine_from_config(
         configuration,

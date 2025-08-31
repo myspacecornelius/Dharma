@@ -9,10 +9,10 @@ table compact while preserving query speed through indexing on the hash column.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import zlib
-import hashlib
-from typing import Any, Dict
+from typing import Any
 
 import aiomysql
 
@@ -20,7 +20,7 @@ import aiomysql
 class StockDatabase:
     """Light‑weight asynchronous client for the stock alert store."""
 
-    def __init__(self, dsn: Dict[str, Any]):
+    def __init__(self, dsn: dict[str, Any]):
         self._dsn = dsn
         self._pool: aiomysql.Pool | None = None
 
@@ -37,12 +37,12 @@ class StockDatabase:
             self._pool = None
 
     @staticmethod
-    def _compress(data: Dict[str, Any]) -> bytes:
+    def _compress(data: dict[str, Any]) -> bytes:
         """Serialize and compress a dictionary."""
         raw = json.dumps(data, separators=(",", ":"), sort_keys=True).encode("utf-8")
         return zlib.compress(raw)
 
-    async def store_alert(self, alert: Dict[str, Any]) -> None:
+    async def store_alert(self, alert: dict[str, Any]) -> None:
         """Persist an alert payload with deduplication."""
         if self._pool is None:
             return

@@ -1,9 +1,12 @@
 
 import uuid
-from sqlalchemy import Column, String, ForeignKey, DateTime
+
+from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from backend.database import Base
+
 
 class Subscription(Base):
     __tablename__ = "subscriptions"

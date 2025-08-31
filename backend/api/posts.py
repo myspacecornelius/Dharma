@@ -1,14 +1,16 @@
+import json
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional
+
 from backend.core.database import get_db
-from backend.models.post import Post
-from backend.schemas.post import PostCreate, Post as PostSchema
-from backend.core.security import get_current_user
-from backend.models.user import User
-import uuid
-import json
 from backend.core.redis_client import r
+from backend.core.security import get_current_user
+from backend.models.post import Post
+from backend.models.user import User
+from backend.schemas.post import Post as PostSchema
+from backend.schemas.post import PostCreate
 
 router = APIRouter()
 
@@ -20,7 +22,7 @@ def create_post(post: PostCreate, db: Session = Depends(get_db), current_user: U
     db.refresh(db_post)
     return db_post
 
-@router.get("/global", response_model=List[PostSchema])
+@router.get("/global", response_model=list[PostSchema])
 def get_global_feed(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     cached_posts = r.get(f"global_feed:{skip}:{limit}")
     if cached_posts:
@@ -32,7 +34,7 @@ def get_global_feed(skip: int = 0, limit: int = 10, db: Session = Depends(get_db
     r.set(f"global_feed:{skip}:{limit}", json.dumps(posts_dict), ex=30) # Cache for 30 seconds
     return posts
 
-@router.get("/user/{user_id}", response_model=List[PostSchema])
+@router.get("/user/{user_id}", response_model=list[PostSchema])
 def get_posts_by_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
     posts = db.query(Post).filter(Post.user_id == user_id).order_by(Post.timestamp.desc()).all()
     return posts

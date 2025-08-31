@@ -1,9 +1,12 @@
 
 import uuid
-from sqlalchemy import Column, ForeignKey, DateTime, UniqueConstraint
+
+from sqlalchemy import Column, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from backend.database import Base
+
 
 class Like(Base):
     __tablename__ = "likes"
@@ -13,5 +16,5 @@ class Like(Base):
     post_id = Column(UUID(as_uuid=True), ForeignKey("posts.post_id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (UniqueConstraint('user_id', 'post_id', name='_user_post_uc'),)
+    __table_args__ = (UniqueConstraint("user_id", "post_id", name="_user_post_uc"),)
 

@@ -1,9 +1,9 @@
 
+import uuid
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import datetime, timedelta
-import uuid
 
 from .. import models, schemas
 from ..core.database import get_db
@@ -45,8 +45,8 @@ def delete_release(release_id: uuid.UUID, db: Session = Depends(get_db)):
     db.commit()
     return
 
-@router.get("/upcoming", response_model=List[schemas.Release])
-def get_upcoming_releases(from_date: Optional[datetime] = None, to_date: Optional[datetime] = None, db: Session = Depends(get_db)):
+@router.get("/upcoming", response_model=list[schemas.Release])
+def get_upcoming_releases(from_date: datetime | None = None, to_date: datetime | None = None, db: Session = Depends(get_db)):
     if from_date is None:
         from_date = datetime.utcnow()
     if to_date is None:
