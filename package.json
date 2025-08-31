@@ -13,5 +13,8 @@
     "devDependencies": {
         "@types/node": "^24.3.0",
         "turbo": "^2.0.9"
+    },
+    "dependencies": {
+        "python": "^0.0.4"
     }
 }
