@@ -93,7 +93,7 @@ def warm_account(self, account_data: dict[str, Any]) -> dict[str, Any]:
     """
     try:
         account_id = account_data.get("account_id")
-        retailer = account_data.get("retailer", "shopify")
+        # retailer = account_data.get("retailer", "shopify")
         duration_minutes = account_data.get("duration", 30)
         
         logger.info(f"Starting account warming for {account_id}")
