@@ -125,7 +125,7 @@ def seed_data():
         release = Release(
             sneaker_name=f"{random.choice(['Air Jordan', 'Yeezy', 'Nike Dunk'])} {random.randint(1, 15)}",
             brand=random.choice(["Nike", "Adidas"]),
-            release_date=datetime.now(UTC) + timedelta(days=random.randint(1, 90)),
+            release_date=datetime.now(UTC) + timedelta(days=secrets.randbelow(90) + 1),
             retail_price=random.randint(100, 300),
             store_links={"store1": fake.url(), "store2": fake.url()}
         )
