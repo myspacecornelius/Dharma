@@ -116,7 +116,7 @@ def seed_data():
             geo_tag_lat=float(fake.latitude()),
             geo_tag_long=float(fake.longitude()),
             content_type=random.choice([ContentType.text, ContentType.image, ContentType.video]),
-            tags=random.sample(["#Jordan4", "#Nike", "#Restock", "#tech", "#art"], k=random.randint(1, 4))
+            tags=random.sample(secrets.SystemRandom().sample(["#Jordan4", "#Nike", "#Restock", "#tech", "#art"], k=4), k=random.randint(1, 4))
         )
         create_location_and_post(db, signal_content, random_user.id)
 
