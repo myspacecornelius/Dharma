@@ -40,5 +40,5 @@ class Humanize:
     async def a_scroll(self, scrolls: int = 5, scroll_delay_range: tuple = (0.5, 1.5)):
         """Scrolls the page randomly to mimic human reading behavior."""
         for _ in range(scrolls):
-            await self.page.evaluate(f"window.scrollBy(0, {random.randint(100, 500)})")
+            await self.page.evaluate(f"window.scrollBy(0, {secrets.randbelow(401) + 100})")
             await asyncio.sleep(random.uniform(*scroll_delay_range))
