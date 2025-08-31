@@ -51,3 +51,7 @@ services/api/alembic.ini
 =======
 services/api/alembic.ini
 >>>>>>> 3a18134 (chore(alembic): remove redundant services/api/alembic.ini and ignore it)
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
