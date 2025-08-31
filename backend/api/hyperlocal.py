@@ -1,13 +1,13 @@
 
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
 
+from backend.core import feed, laces, locations, security
 from backend.core.database import get_db
-from backend.core import security, locations, laces, feed
+from backend.models import user as user_models
 from backend.schemas import post as post_schemas
 from backend.schemas import user as user_schemas
-from backend.models import user as user_models
 
 router = APIRouter()
 
@@ -23,7 +23,7 @@ def create_signal(
     db_post = locations.create_location_and_post(db=db, post_create=signal, user_id=current_user.id)
     return db_post
 
-@router.get("/feed/scan", response_model=List[post_schemas.PostResponse])
+@router.get("/feed/scan", response_model=list[post_schemas.PostResponse])
 def get_local_feed(
     latitude: float,
     longitude: float,

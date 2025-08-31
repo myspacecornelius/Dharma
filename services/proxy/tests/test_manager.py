@@ -1,8 +1,13 @@
+
 import pytest
-import asyncio
-from services.proxy.manager import ProxyManager, Proxy, proxy_id
-from services.proxy.utils.settings import SETTINGS
-import fakeredis.aioredis
+
+from services.proxy.manager import Proxy, ProxyManager, proxy_id
+
+try:
+    import fakeredis.aioredis
+    HAS_FAKEREDIS = True
+except ImportError:
+    HAS_FAKEREDIS = False
 
 def test_initial_setup():
     """
@@ -18,6 +23,7 @@ async def test_async_setup():
     assert True
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not HAS_FAKEREDIS, reason="fakeredis not available")
 async def test_get_proxy_uses_proxy_id():
     """ 
     Tests that get_proxy correctly uses proxy_id for lookups.

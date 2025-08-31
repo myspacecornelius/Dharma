@@ -1,12 +1,13 @@
 
-from pydantic import BaseModel
 import uuid
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel
+
 
 class SubscriptionBase(BaseModel):
-    brand: Optional[str] = None
-    release_id: Optional[uuid.UUID] = None
+    brand: str | None = None
+    release_id: uuid.UUID | None = None
 
 class SubscriptionCreate(SubscriptionBase):
     pass

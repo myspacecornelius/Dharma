@@ -1,16 +1,17 @@
 
-from pydantic import BaseModel
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List
+
+from pydantic import BaseModel
+
 
 class ReleaseBase(BaseModel):
     sneaker_name: str
     brand: str
     release_date: datetime
     retail_price: Decimal
-    store_links: Optional[dict] = None
+    store_links: dict | None = None
 
 class ReleaseCreate(ReleaseBase):
     pass

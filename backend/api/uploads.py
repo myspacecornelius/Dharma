@@ -1,7 +1,7 @@
 
-import boto3
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
+
 from .. import schemas
 from ..core.s3 import s3_client
 

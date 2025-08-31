@@ -3,19 +3,18 @@ SneakerSniper Celery Tasks
 Background task processing for the bot engine
 """
 
-from celery import Celery, Task
-from celery.utils.log import get_task_logger
-import redis
 import json
 import time
-import httpx
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
-import asyncio
+from typing import Any
+
+import redis
+from celery import Celery, Task
+from celery.utils.log import get_task_logger
 
 # Initialize Celery
-app = Celery('sneakersniper')
-app.config_from_object('celeryconfig')
+app = Celery("sneakersniper")
+app.config_from_object("celeryconfig")
 
 # Get logger
 logger = get_task_logger(__name__)
@@ -50,15 +49,15 @@ class CallbackTask(Task):
         )
 
 @app.task(base=CallbackTask, bind=True, max_retries=3)
-def process_checkout_batch(self, batch_data: Dict[str, Any]) -> Dict[str, Any]:
+def process_checkout_batch(self, batch_data: dict[str, Any]) -> dict[str, Any]:
     """
     Process a batch of checkout tasks
     """
     try:
-        task_count = batch_data.get('count', 0)
-        profile_id = batch_data.get('profile_id')
-        mode = batch_data.get('mode', 'request')
-        retailer = batch_data.get('retailer', 'shopify')
+        task_count = batch_data.get("count", 0)
+        profile_id = batch_data.get("profile_id")
+        mode = batch_data.get("mode", "request")
+        retailer = batch_data.get("retailer", "shopify")
         
         logger.info(f"Processing checkout batch: {task_count} tasks")
         
@@ -66,21 +65,21 @@ def process_checkout_batch(self, batch_data: Dict[str, Any]) -> Dict[str, Any]:
         task_ids = []
         for i in range(task_count):
             task_data = {
-                'task_id': f"{self.request.id}-{i}",
-                'profile_id': profile_id,
-                'mode': mode,
-                'retailer': retailer,
-                'created_at': datetime.now().isoformat()
+                "task_id": f"{self.request.id}-{i}",
+                "profile_id": profile_id,
+                "mode": mode,
+                "retailer": retailer,
+                "created_at": datetime.now().isoformat()
             }
             
             # Queue for checkout service
             redis_client.lpush("checkout_queue", json.dumps(task_data))
-            task_ids.append(task_data['task_id'])
+            task_ids.append(task_data["task_id"])
             
         return {
-            'success': True,
-            'task_ids': task_ids,
-            'batch_id': self.request.id
+            "success": True,
+            "task_ids": task_ids,
+            "batch_id": self.request.id
         }
         
     except Exception as e:
@@ -88,14 +87,14 @@ def process_checkout_batch(self, batch_data: Dict[str, Any]) -> Dict[str, Any]:
         self.retry(exc=e, countdown=60)
 
 @app.task(bind=True)
-def warm_account(self, account_data: Dict[str, Any]) -> Dict[str, Any]:
+def warm_account(self, account_data: dict[str, Any]) -> dict[str, Any]:
     """
     Warm up an account with browsing activity
     """
     try:
-        account_id = account_data.get('account_id')
-        retailer = account_data.get('retailer', 'shopify')
-        duration_minutes = account_data.get('duration', 30)
+        account_id = account_data.get("account_id")
+        retailer = account_data.get("retailer", "shopify")
+        duration_minutes = account_data.get("duration", 30)
         
         logger.info(f"Starting account warming for {account_id}")
         
@@ -118,9 +117,9 @@ def warm_account(self, account_data: Dict[str, Any]) -> Dict[str, Any]:
             redis_client.hset(
                 f"warming:{account_id}",
                 mapping={
-                    'current_activity': activity,
-                    'activity_count': activity_count,
-                    'last_update': datetime.now().isoformat()
+                    "current_activity": activity,
+                    "activity_count": activity_count,
+                    "last_update": datetime.now().isoformat()
                 }
             )
             
@@ -129,10 +128,10 @@ def warm_account(self, account_data: Dict[str, Any]) -> Dict[str, Any]:
             activity_count += 1
             
         return {
-            'success': True,
-            'account_id': account_id,
-            'activities_performed': activity_count,
-            'duration_minutes': duration_minutes
+            "success": True,
+            "account_id": account_id,
+            "activities_performed": activity_count,
+            "duration_minutes": duration_minutes
         }
         
     except Exception as e:
@@ -140,7 +139,7 @@ def warm_account(self, account_data: Dict[str, Any]) -> Dict[str, Any]:
         raise
 
 @app.task
-def rotate_proxies() -> Dict[str, Any]:
+def rotate_proxies() -> dict[str, Any]:
     """
     Rotate proxy pool and check health
     """
@@ -159,8 +158,8 @@ def rotate_proxies() -> Dict[str, Any]:
             proxy_data = redis_client.hgetall(proxy_key)
             
             # Check failure rate
-            failures = int(proxy_data.get('failures', 0))
-            requests = int(proxy_data.get('requests', 1))
+            failures = int(proxy_data.get("failures", 0))
+            requests = int(proxy_data.get("requests", 1))
             failure_rate = failures / requests if requests > 0 else 0
             
             if failure_rate > 0.3:  # 30% failure threshold
@@ -178,10 +177,10 @@ def rotate_proxies() -> Dict[str, Any]:
             logger.info(f"Low proxy count ({healthy}), requesting new proxies")
             
         return {
-            'healthy': healthy,
-            'burned': burned,
-            'total_active': len(active_proxies),
-            'timestamp': datetime.now().isoformat()
+            "healthy": healthy,
+            "burned": burned,
+            "total_active": len(active_proxies),
+            "timestamp": datetime.now().isoformat()
         }
         
     except Exception as e:
@@ -189,7 +188,7 @@ def rotate_proxies() -> Dict[str, Any]:
         raise
 
 @app.task
-def analyze_checkout_performance() -> Dict[str, Any]:
+def analyze_checkout_performance() -> dict[str, Any]:
     """
     Analyze checkout performance metrics
     """
@@ -202,7 +201,7 @@ def analyze_checkout_performance() -> Dict[str, Any]:
         success_rate = (successful_checkouts / total_checkouts * 100) if total_checkouts > 0 else 0
         
         # Get retailer-specific metrics
-        retailers = ['shopify', 'footsites', 'supreme', 'snkrs']
+        retailers = ["shopify", "footsites", "supreme", "snkrs"]
         retailer_stats = {}
         
         for retailer in retailers:
@@ -210,18 +209,18 @@ def analyze_checkout_performance() -> Dict[str, Any]:
             retailer_success = int(redis_client.get(f"metrics:{retailer}:success") or 0)
             
             retailer_stats[retailer] = {
-                'total': retailer_total,
-                'success': retailer_success,
-                'rate': (retailer_success / retailer_total * 100) if retailer_total > 0 else 0
+                "total": retailer_total,
+                "success": retailer_success,
+                "rate": (retailer_success / retailer_total * 100) if retailer_total > 0 else 0
             }
         
         # Store analysis
         analysis = {
-            'overall_success_rate': round(success_rate, 2),
-            'total_checkouts': total_checkouts,
-            'successful_checkouts': successful_checkouts,
-            'retailer_stats': retailer_stats,
-            'analyzed_at': datetime.now().isoformat()
+            "overall_success_rate": round(success_rate, 2),
+            "total_checkouts": total_checkouts,
+            "successful_checkouts": successful_checkouts,
+            "retailer_stats": retailer_stats,
+            "analyzed_at": datetime.now().isoformat()
         }
         
         redis_client.set("metrics:latest_analysis", json.dumps(analysis))
@@ -247,7 +246,7 @@ def analyze_checkout_performance() -> Dict[str, Any]:
         raise
 
 @app.task
-def cleanup_old_data() -> Dict[str, Any]:
+def cleanup_old_data() -> dict[str, Any]:
     """
     Clean up old data from Redis
     """
@@ -260,8 +259,8 @@ def cleanup_old_data() -> Dict[str, Any]:
         
         for monitor_id in all_monitors:
             monitor_data = redis_client.hgetall(f"monitor:{monitor_id}")
-            if monitor_data.get('status') == 'stopped':
-                created_at = monitor_data.get('created_at', '')
+            if monitor_data.get("status") == "stopped":
+                created_at = monitor_data.get("created_at", "")
                 if created_at:
                     created_time = datetime.fromisoformat(created_at)
                     if datetime.now() - created_time > timedelta(days=7):
@@ -279,7 +278,7 @@ def cleanup_old_data() -> Dict[str, Any]:
         
         for alert_json in alerts:
             alert = json.loads(alert_json)
-            alert_time = datetime.fromisoformat(alert['timestamp'])
+            alert_time = datetime.fromisoformat(alert["timestamp"])
             if datetime.now() - alert_time <= timedelta(days=1):
                 alerts_to_keep.append(alert_json)
                 
@@ -291,10 +290,10 @@ def cleanup_old_data() -> Dict[str, Any]:
         alerts_cleaned = len(alerts) - len(alerts_to_keep)
         
         return {
-            'monitors_cleaned': monitors_cleaned,
-            'tasks_cleaned': tasks_cleaned,
-            'alerts_cleaned': alerts_cleaned,
-            'cleaned_at': datetime.now().isoformat()
+            "monitors_cleaned": monitors_cleaned,
+            "tasks_cleaned": tasks_cleaned,
+            "alerts_cleaned": alerts_cleaned,
+            "cleaned_at": datetime.now().isoformat()
         }
         
     except Exception as e:
@@ -310,26 +309,26 @@ def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
         300.0,
         rotate_proxies.s(),
-        name='Rotate proxy pool'
+        name="Rotate proxy pool"
     )
     
     # Analyze performance every 15 minutes
     sender.add_periodic_task(
         900.0,
         analyze_checkout_performance.s(),
-        name='Analyze checkout performance'
+        name="Analyze checkout performance"
     )
     
     # Clean up old data daily
     sender.add_periodic_task(
         86400.0,
         cleanup_old_data.s(),
-        name='Daily cleanup'
+        name="Daily cleanup"
     )
 
 # WebSocket task for real-time updates
 @app.task
-def broadcast_update(channel: str, message: Dict[str, Any]) -> None:
+def broadcast_update(channel: str, message: dict[str, Any]) -> None:
     """
     Broadcast update to WebSocket clients
     """
@@ -338,5 +337,5 @@ def broadcast_update(channel: str, message: Dict[str, Any]) -> None:
     except Exception as e:
         logger.error(f"Broadcast failed: {e}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.start()

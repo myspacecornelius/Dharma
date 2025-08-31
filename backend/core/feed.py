@@ -1,10 +1,11 @@
-from sqlalchemy.orm import Session
-from geoalchemy2.elements import WKTElement
-from sqlalchemy import func, desc
-from typing import List
 
-from backend.models import post as post_models
+from geoalchemy2.elements import WKTElement
+from sqlalchemy import desc, func
+from sqlalchemy.orm import Session
+
 from backend.models import location as location_models
+from backend.models import post as post_models
+
 
 def get_hyperlocal_feed(
     db: Session,
@@ -14,7 +15,7 @@ def get_hyperlocal_feed(
     limit: int = 100,
 ):
     # Create a WKTElement for the user's current location
-    user_point = WKTElement(f'POINT({longitude} {latitude})', srid=4326)
+    user_point = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
 
     # Convert radius from kilometers to meters for ST_DWithin
     radius_meters = radius * 1000

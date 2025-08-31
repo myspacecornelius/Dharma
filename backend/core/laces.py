@@ -1,10 +1,10 @@
 
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
-from backend.models import user as user_models
 from backend.models import laces as laces_models
 from backend.models import post as post_models
+from backend.models import user as user_models
 
 # Define the cost of boosting a signal
 BOOST_COST = 10 # Example: 10 Laces per boost

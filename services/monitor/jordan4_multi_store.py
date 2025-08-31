@@ -1,7 +1,8 @@
 """Multi-store monitoring workflow for Jordan 4 'Military Blue'."""
 
 import asyncio
-from service import MonitorService, MonitorConfig
+
+from service import MonitorConfig, MonitorService
 
 # SKU identifiers for each retailer (placeholders)
 JORDAN4_MILITARY_BLUE = {

@@ -1,8 +1,8 @@
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
 
-from services.checkout.service import CheckoutTask, Profile, CheckoutResult
+from services.checkout.service import CheckoutResult, CheckoutTask, Profile
+
 
 class BaseCheckoutAdapter(ABC):
     """Abstract base class for all checkout adapters."""
@@ -44,7 +44,7 @@ class AdapterRegistry:
     """
 
     def __init__(self):
-        self._adapters: Dict[str, BaseCheckoutAdapter] = {}
+        self._adapters: dict[str, BaseCheckoutAdapter] = {}
 
     def register(self, adapter: BaseCheckoutAdapter):
         """
@@ -55,7 +55,7 @@ class AdapterRegistry:
             raise ValueError(f"Adapter with key '{key}' is already registered.")
         self._adapters[key] = adapter
 
-    def get_adapter(self, retailer: str, mode: str) -> Optional[BaseCheckoutAdapter]:
+    def get_adapter(self, retailer: str, mode: str) -> BaseCheckoutAdapter | None:
         """
         Returns the checkout adapter for the a given retailer and mode.
         """

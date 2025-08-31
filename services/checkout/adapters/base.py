@@ -3,8 +3,11 @@ Base classes for checkout adapters.
 """
 from abc import ABC, abstractmethod
 from typing import ClassVar
+
 import httpx
-from services.checkout.service import CheckoutTask, Profile, CheckoutResult
+
+from services.checkout.service import CheckoutResult, CheckoutTask, Profile
+
 
 class BaseCheckoutAdapter(ABC):
     """

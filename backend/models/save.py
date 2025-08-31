@@ -1,9 +1,12 @@
 
 import uuid
-from sqlalchemy import Column, ForeignKey, DateTime
+
+from sqlalchemy import Column, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from backend.database import Base
+
 
 class Save(Base):
     __tablename__ = "saves"

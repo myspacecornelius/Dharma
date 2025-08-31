@@ -1,17 +1,19 @@
 
 import random
+from datetime import UTC, datetime, timedelta
+
 from faker import Faker
 from sqlalchemy.orm import Session
+
 from backend.core.database import SessionLocal
-from backend.models.user import User
+from backend.core.locations import create_location_and_post
+from backend.core.security import get_password_hash
+from backend.models.laces import LacesLedger
+from backend.models.location import Location
 from backend.models.post import Post
 from backend.models.release import Release
-from backend.models.location import Location
-from backend.models.laces import LacesLedger
-from backend.core.security import get_password_hash
-from backend.core.locations import create_location_and_post
-from datetime import datetime, timedelta, timezone
-from backend.schemas.post import PostCreate, ContentType
+from backend.models.user import User
+from backend.schemas.post import ContentType, PostCreate
 
 fake = Faker()
 
@@ -85,10 +87,10 @@ def seed_data():
             signal_content = PostCreate(
                 user_id=boston_user.id,
                 content_text=f"Spotted some fresh kicks near {loc_data['name']}! #BostonSneakers",
-                geo_tag_lat=loc_data['latitude'] + random.uniform(-0.001, 0.001), # Slight variation
-                geo_tag_long=loc_data['longitude'] + random.uniform(-0.001, 0.001),
+                geo_tag_lat=loc_data["latitude"] + random.uniform(-0.001, 0.001), # Slight variation
+                geo_tag_long=loc_data["longitude"] + random.uniform(-0.001, 0.001),
                 content_type=random.choice([ContentType.text, ContentType.image]),
-                tags=random.sample(['#Boston', '#SneakerDrop', '#Heat', '#LocalFinds'], k=random.randint(1, 3))
+                tags=random.sample(["#Boston", "#SneakerDrop", "#Heat", "#LocalFinds"], k=random.randint(1, 3))
             )
             create_location_and_post(db, signal_content, boston_user.id)
 
@@ -98,10 +100,10 @@ def seed_data():
             signal_content = PostCreate(
                 user_id=nyc_user.id,
                 content_text=f"NYC is buzzing with new releases near {loc_data['name']}! #NYCSneakers",
-                geo_tag_lat=loc_data['latitude'] + random.uniform(-0.001, 0.001),
-                geo_tag_long=loc_data['longitude'] + random.uniform(-0.001, 0.001),
+                geo_tag_lat=loc_data["latitude"] + random.uniform(-0.001, 0.001),
+                geo_tag_long=loc_data["longitude"] + random.uniform(-0.001, 0.001),
                 content_type=random.choice([ContentType.text, ContentType.image]),
-                tags=random.sample(['#NYC', '#SneakerCulture', '#LimitedEdition', '#Streetwear'], k=random.randint(1, 3))
+                tags=random.sample(["#NYC", "#SneakerCulture", "#LimitedEdition", "#Streetwear"], k=random.randint(1, 3))
             )
             create_location_and_post(db, signal_content, nyc_user.id)
 
@@ -114,7 +116,7 @@ def seed_data():
             geo_tag_lat=float(fake.latitude()),
             geo_tag_long=float(fake.longitude()),
             content_type=random.choice([ContentType.text, ContentType.image, ContentType.video]),
-            tags=random.sample(['#Jordan4', '#Nike', '#Restock', '#tech', '#art'], k=random.randint(1, 4))
+            tags=random.sample(["#Jordan4", "#Nike", "#Restock", "#tech", "#art"], k=random.randint(1, 4))
         )
         create_location_and_post(db, signal_content, random_user.id)
 
@@ -123,7 +125,7 @@ def seed_data():
         release = Release(
             sneaker_name=f"{random.choice(['Air Jordan', 'Yeezy', 'Nike Dunk'])} {random.randint(1, 15)}",
             brand=random.choice(["Nike", "Adidas"]),
-            release_date=datetime.now(timezone.utc) + timedelta(days=random.randint(1, 90)),
+            release_date=datetime.now(UTC) + timedelta(days=random.randint(1, 90)),
             retail_price=random.randint(100, 300),
             store_links={"store1": fake.url(), "store2": fake.url()}
         )
