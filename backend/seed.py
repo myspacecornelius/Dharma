@@ -103,7 +103,7 @@ def seed_data():
                 geo_tag_lat=loc_data["latitude"] + secrets.randbelow(3) / 10000 - 0.00015,
                 geo_tag_long=loc_data["longitude"] + random.uniform(-0.001, 0.001),
                 content_type=random.choice([ContentType.text, ContentType.image]),
-                tags=random.sample(["#NYC", "#SneakerCulture", "#LimitedEdition", "#Streetwear"], k=random.randint(1, 3))
+                tags=random.sample(["#NYC", "#SneakerCulture", "#LimitedEdition", "#Streetwear"], k=secrets.randbelow(3) + 1)
             )
             create_location_and_post(db, signal_content, nyc_user.id)
 
