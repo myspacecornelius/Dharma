@@ -11,11 +11,11 @@ from backend.models import user as user_models
 
 router = APIRouter()
 
-@router.post("/signals", response_model=post_schemas.PostCreateResponse)
+@router.post("/signals", response_model=post_schemas.Post)
 def create_signal(
     signal: post_schemas.PostCreate,
     db: Session = Depends(get_db),
-    current_user: user_models.User = Depends(security.get_current_active_user),
+    current_user: user_models.User = Depends(security.get_current_user),
 ):
     """
     Create a new hyperlocal signal (post).
@@ -23,13 +23,13 @@ def create_signal(
     db_post = locations.create_location_and_post(db=db, post_create=signal, user_id=current_user.id)
     return db_post
 
-@router.get("/feed/scan", response_model=List[post_schemas.PostResponse])
+@router.get("/feed/scan", response_model=List[post_schemas.Post])
 def get_local_feed(
     latitude: float,
     longitude: float,
     radius: float = 1.0, # in kilometers
     db: Session = Depends(get_db),
-    current_user: user_models.User = Depends(security.get_current_active_user),
+    current_user: user_models.User = Depends(security.get_current_user),
 ):
     """
     Fetch hyperlocal feed based on user's location.
@@ -37,11 +37,11 @@ def get_local_feed(
     posts = feed.get_hyperlocal_feed(db=db, latitude=latitude, longitude=longitude, radius=radius)
     return posts
 
-@router.post("/signals/{post_id}/boost", response_model=user_schemas.UserResponse)
+@router.post("/signals/{post_id}/boost", response_model=user_schemas.User)
 def boost_signal(
     post_id: int,
     db: Session = Depends(get_db),
-    current_user: user_models.User = Depends(security.get_current_active_user),
+    current_user: user_models.User = Depends(security.get_current_user),
 ):
     """
     Boost a signal using Laces.
