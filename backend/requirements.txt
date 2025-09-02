@@ -46,5 +46,5 @@ email-validator==2.1.0.post1
 # Geospatial
 geopy==2.4.1
 numpy<2.0  # Pin to numpy 1.x for shapely compatibility
-shapely==2.0.2
+shapely==2.0.7
 geoalchemy2==0.14.3
